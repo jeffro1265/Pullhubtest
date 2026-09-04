@@ -415,7 +415,6 @@
     const btnParse = document.getElementById('btnParseParticipants');
     const btnClearData = document.getElementById('btnClearData');
     const btnAddManual = document.getElementById('btnAddManualParticipant');
-    const btnClearAllDistances = document.getElementById('btnClearAllDistances');
 
     if (tsvInput) {
       tsvInput.addEventListener('input', () => {
@@ -453,17 +452,6 @@
 
     if (btnAddManual) {
       btnAddManual.addEventListener('click', handleManualParticipantAdd);
-    }
-
-    if (btnClearAllDistances) {
-      btnClearAllDistances.addEventListener('click', () => {
-        if (!confirm('Clear all recorded distances?')) return;
-        appState.participants.forEach(p => p.distance = '');
-        Storage.save(STORAGE_KEYS.PARTICIPANTS_LIST, appState.participants);
-        renderParticipantsList();
-        updateStandingsPreview();
-        showToast('Distances reset', 'info');
-      });
     }
 
     // 5.4: Results & Standings Panel
@@ -513,13 +501,85 @@
       });
     }
 
-    // Results 20s Overlay Slider
+    // Results 20s Overlay Slider (with Class & Mode Confirmation Prompt)
     bindCountdownSlider({
       toggleId: 'toggleResultsOverlay',
       rowId: 'rowResultsOverlay',
       meterId: 'meterResultsOverlay',
       timerTagId: 'timerResultsOverlay',
       durationSeconds: 20,
+      onBeforeActivate: (onConfirm, onCancel) => {
+        const modal = document.getElementById('resultsConfirmModal');
+        const modalClass = document.getElementById('confirmModalClass');
+        const modalMode = document.getElementById('confirmModalMode');
+        const btnYes = document.getElementById('btnConfirmResultsYes');
+        const btnNo = document.getElementById('btnConfirmResultsNo');
+
+        const className = getEffectiveClassName();
+        const mode = appState.resultsMode;
+
+        if (!modal) {
+          if (confirm(`Are the class and mode correct?\n\nClass: ${className}\nMode: ${mode}`)) {
+            onConfirm();
+          } else {
+            onCancel();
+          }
+          return;
+        }
+
+        if (modalClass) modalClass.textContent = className;
+        if (modalMode) modalMode.textContent = mode;
+
+        let cleanup = null;
+
+        const closeModal = () => {
+          modal.classList.remove('is-open');
+          setTimeout(() => {
+            modal.style.display = 'none';
+          }, 200);
+          if (cleanup) cleanup();
+        };
+
+        const handleYes = (e) => {
+          e.preventDefault();
+          closeModal();
+          onConfirm();
+        };
+
+        const handleNo = (e) => {
+          e.preventDefault();
+          closeModal();
+          onCancel();
+        };
+
+        const handleBackdrop = (e) => {
+          if (e.target === modal) {
+            handleNo(e);
+          }
+        };
+
+        const handleKeydown = (e) => {
+          if (e.key === 'Escape') {
+            handleNo(e);
+          }
+        };
+
+        cleanup = () => {
+          if (btnYes) btnYes.removeEventListener('click', handleYes);
+          if (btnNo) btnNo.removeEventListener('click', handleNo);
+          modal.removeEventListener('click', handleBackdrop);
+          document.removeEventListener('keydown', handleKeydown);
+        };
+
+        if (btnYes) btnYes.addEventListener('click', handleYes);
+        if (btnNo) btnNo.addEventListener('click', handleNo);
+        modal.addEventListener('click', handleBackdrop);
+        document.addEventListener('keydown', handleKeydown);
+
+        modal.style.display = 'flex';
+        void modal.offsetWidth;
+        modal.classList.add('is-open');
+      },
       getPayload: () => {
         const items = appState.bypassActive ? appState.bypassItems : getCompiledStandings();
         return {
@@ -1026,7 +1086,7 @@
   // ==========================================================================
   // 9. Countdown Timers & Visual Progress Meter
   // ==========================================================================
-  function bindCountdownSlider({ toggleId, rowId, meterId, timerTagId, durationSeconds, getPayload }) {
+  function bindCountdownSlider({ toggleId, rowId, meterId, timerTagId, durationSeconds, getPayload, onBeforeActivate }) {
     const toggle = document.getElementById(toggleId);
     const row = document.getElementById(rowId);
     const meter = document.getElementById(meterId);
@@ -1034,49 +1094,63 @@
 
     if (!toggle) return;
 
+    function startTimer() {
+      cancelActiveTimer();
+
+      toggle.checked = true;
+      if (row) row.classList.add('is-active');
+      if (meter) meter.style.width = '100%';
+      if (timerTag) timerTag.textContent = `${durationSeconds}s`;
+
+      const payload = getPayload();
+      mqttService.publishState(payload);
+
+      const startTime = Date.now();
+      const totalMs = durationSeconds * 1000;
+
+      const updateMeter = () => {
+        const elapsed = Date.now() - startTime;
+        const remainingMs = Math.max(0, totalMs - elapsed);
+        const fraction = remainingMs / totalMs;
+
+        if (meter) {
+          meter.style.width = `${(fraction * 100).toFixed(1)}%`;
+        }
+
+        if (timerTag) {
+          const remainingSecs = Math.ceil(remainingMs / 1000);
+          timerTag.textContent = `${remainingSecs}s`;
+        }
+
+        if (remainingMs <= 0) {
+          cancelActiveTimer();
+        } else {
+          activeTimer.animFrame = requestAnimationFrame(updateMeter);
+        }
+      };
+
+      activeTimer = {
+        toggle,
+        row,
+        meter,
+        timerTag,
+        animFrame: requestAnimationFrame(updateMeter),
+        durationSeconds
+      };
+    }
+
     toggle.addEventListener('change', () => {
       if (toggle.checked) {
-        cancelActiveTimer();
-
-        if (row) row.classList.add('is-active');
-        if (meter) meter.style.width = '100%';
-        if (timerTag) timerTag.textContent = `${durationSeconds}s`;
-
-        const payload = getPayload();
-        mqttService.publishState(payload);
-
-        const startTime = Date.now();
-        const totalMs = durationSeconds * 1000;
-
-        const updateMeter = () => {
-          const elapsed = Date.now() - startTime;
-          const remainingMs = Math.max(0, totalMs - elapsed);
-          const fraction = remainingMs / totalMs;
-
-          if (meter) {
-            meter.style.width = `${(fraction * 100).toFixed(1)}%`;
-          }
-
-          if (timerTag) {
-            const remainingSecs = Math.ceil(remainingMs / 1000);
-            timerTag.textContent = `${remainingSecs}s`;
-          }
-
-          if (remainingMs <= 0) {
-            cancelActiveTimer();
-          } else {
-            activeTimer.animFrame = requestAnimationFrame(updateMeter);
-          }
-        };
-
-        activeTimer = {
-          toggle,
-          row,
-          meter,
-          timerTag,
-          animFrame: requestAnimationFrame(updateMeter),
-          durationSeconds
-        };
+        if (typeof onBeforeActivate === 'function') {
+          // Temporarily uncheck until confirmed
+          toggle.checked = false;
+          onBeforeActivate(
+            () => startTimer(), // onConfirm
+            () => { toggle.checked = false; } // onCancel
+          );
+        } else {
+          startTimer();
+        }
       } else {
         cancelActiveTimer();
       }

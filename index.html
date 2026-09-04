@@ -214,9 +214,6 @@
           <h3 style="font-size: 0.95rem; text-transform: uppercase; color: var(--text-secondary);">
             Participant Roster (<span id="participantCount">0</span>)
           </h3>
-          <button type="button" class="btn btn-secondary btn-sm" id="btnClearAllDistances" title="Clear all entered distances">
-            Reset Distances
-          </button>
         </div>
 
         <div class="participants-container" id="participantsList">
@@ -346,6 +343,39 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- Results Confirmation Modal -->
+  <div class="modal-backdrop" id="resultsConfirmModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <span class="modal-icon">⚠️</span>
+        <h3 class="modal-title">Confirm Results Broadcast</h3>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.95rem;">
+          Are the class and mode correct for the results overlay?
+        </p>
+        <div class="confirm-details-box">
+          <div class="confirm-detail-row">
+            <span class="confirm-detail-label">Pulling Class</span>
+            <span class="confirm-detail-value" id="confirmModalClass">-</span>
+          </div>
+          <div class="confirm-detail-row">
+            <span class="confirm-detail-label">Results Mode</span>
+            <span class="confirm-detail-value mode" id="confirmModalMode">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnConfirmResultsNo" style="min-width: 100px;">
+          No
+        </button>
+        <button type="button" class="btn btn-primary" id="btnConfirmResultsYes" style="min-width: 100px;">
+          Yes
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notification Container -->

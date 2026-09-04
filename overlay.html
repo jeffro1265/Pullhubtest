@@ -613,7 +613,10 @@
 
         // 2) Participant Lower Third
         else if (activeOverlay === 'participant') {
-          partVehicleDisplay.textContent = overlayData.vehicle || 'Unknown Vehicle';
+          const rawVehicle = (overlayData.vehicle || 'Unknown Vehicle').trim();
+          partVehicleDisplay.textContent = (rawVehicle.startsWith('"') && rawVehicle.endsWith('"')) || (rawVehicle.startsWith('“') && rawVehicle.endsWith('”'))
+            ? rawVehicle
+            : `"${rawVehicle}"`;
 
           const driver = overlayData.driver || '';
           const hometown = overlayData.hometown || '';
