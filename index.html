@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pulling Control Panel</title>
+  <link rel="stylesheet" href="css/control.css">
+  <!-- MQTT.js over WebSocket from unpkg CDN -->
+  <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="header-icon">🚜</div>
+        <div class="header-title-group">
+          <h1>Pulling Control Panel</h1>
+          <div class="header-subtitle">Livestream GFX &amp; Scoring Controller</div>
+        </div>
+      </div>
+      <div class="header-status-area">
+        <div id="connectionBadge" class="status-badge disconnected">
+          <span class="status-dot"></span>
+          <span id="connectionText">Offline</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="panels-grid">
+
+      <!-- ================= 1) Channel Key Panel ================= -->
+      <section class="panel-card" id="panelChannelKey">
+        <div class="panel-card-header">
+          <div class="panel-title">
+            <span>🔑</span>
+            <h2>Channel Key Panel</h2>
+          </div>
+          <span class="panel-badge">Step 1</span>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-input-wrapper">
+            <label for="channelKeyInput">Overlay Channel Key</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="channelKeyInput" placeholder="e.g. pull-event-2026" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRandomKey" title="Generate random key">🎲 Random</button>
+            </div>
+          </div>
+          <div class="channel-actions">
+            <button type="button" class="btn btn-primary" id="btnSetKey">Set Key</button>
+            <button type="button" class="btn btn-secondary" id="btnCopyUrl" disabled title="Set a key first">📋 Copy Overlay URL</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="broker-toggle-link" id="toggleBrokerConfig">⚙️ Advanced Broker Settings</span>
+          <div class="broker-config-box" id="brokerConfigBox">
+            <label for="brokerUrlInput">Custom MQTT Broker (WSS)</label>
+            <input type="text" id="brokerUrlInput" value="wss://broker.hivemq.com:8884/mqtt" placeholder="wss://your-broker-address:port/mqtt">
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              Default: HiveMQ Public Secure Broker. Changes will apply on next "Set Key".
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2) Event Information Panel ================= -->
+      <section class="panel-card" id="panelEventInfo">
+        <div class="panel-card-header">
+          <div class="panel-title">
+            <span>📢</span>
+            <h2>Event Information Panel</h2>
+          </div>
+          <span class="panel-badge">15s Timers</span>
+        </div>
+
+        <!-- 2.i: Event Information -->
+        <div class="interactive-row" id="rowEventInfo">
+          <div class="row-top">
+            <div class="row-controls">
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="toggleEventInfo">
+                  <span class="slider"></span>
+                </div>
+                <span>LOWER THIRD</span>
+              </label>
+              <span class="timer-tag" id="timerEventInfo">15s</span>
+            </div>
+            <div class="row-fields">
+              <div>
+                <label for="eventHeading">Event Heading</label>
+                <input type="text" id="eventHeading" placeholder="e.g. Buckeye Nationals Championship">
+              </div>
+              <div>
+                <label for="eventSub">Event Sub Text</label>
+                <input type="text" id="eventSub" placeholder="e.g. Session 1 • Mercer County Fairgrounds">
+              </div>
+            </div>
+          </div>
+          <div class="countdown-meter-wrapper">
+            <div class="countdown-progress-bar" id="meterEventInfo"></div>
+          </div>
+        </div>
+
+        <!-- 2.ii: Announcer Information -->
+        <div class="interactive-row" id="rowAnnouncerInfo">
+          <div class="row-top">
+            <div class="row-controls">
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="toggleAnnouncerInfo">
+                  <span class="slider"></span>
+                </div>
+                <span>LOWER THIRD</span>
+              </label>
+              <span class="timer-tag" id="timerAnnouncerInfo">15s</span>
+            </div>
+            <div class="row-fields">
+              <div>
+                <label for="announcerHeading">Announcer Name</label>
+                <input type="text" id="announcerHeading" placeholder="e.g. Mike Henderson">
+              </div>
+              <div>
+                <label for="announcerSub">Announcer Sub Text</label>
+                <input type="text" id="announcerSub" placeholder="e.g. Lead Track Commentator">
+              </div>
+            </div>
+          </div>
+          <div class="countdown-meter-wrapper">
+            <div class="countdown-progress-bar" id="meterAnnouncerInfo"></div>
+          </div>
+        </div>
+
+        <!-- 2.iii: Misc Info -->
+        <div class="interactive-row" id="rowMiscInfo">
+          <div class="row-top">
+            <div class="row-controls">
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="toggleMiscInfo">
+                  <span class="slider"></span>
+                </div>
+                <span>LOWER THIRD</span>
+              </label>
+              <span class="timer-tag" id="timerMiscInfo">15s</span>
+            </div>
+            <div class="row-fields">
+              <div>
+                <label for="miscHeading">Misc. Heading</label>
+                <input type="text" id="miscHeading" placeholder="e.g. Track Sponsor">
+              </div>
+              <div>
+                <label for="miscSub">Misc. Sub Text</label>
+                <input type="text" id="miscSub" placeholder="e.g. Fueling Power With Sunoco Race Fuels">
+              </div>
+            </div>
+          </div>
+          <div class="countdown-meter-wrapper">
+            <div class="countdown-progress-bar" id="meterMiscInfo"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= 3) Participants List Panel ================= -->
+      <section class="panel-card" id="panelParticipants">
+        <div class="panel-card-header">
+          <div class="panel-title">
+            <span>🏁</span>
+            <h2>Participants List Panel</h2>
+          </div>
+          <span class="panel-badge">10s Timers</span>
+        </div>
+
+        <!-- 3.a: TSV Import Box from Google Sheets -->
+        <div class="tsv-import-section">
+          <label for="tsvParticipantsInput">
+            Import Participants (Paste TSV cells from Google Sheets: <code>Vehicle [TAB] Driver [TAB] Hometown</code>)
+          </label>
+          <textarea id="tsvParticipantsInput" placeholder="Midnight Express	John Doe	Celina, OH&#10;Iron Horse	Jane Smith	Bowling Green, OH"></textarea>
+          <div class="import-actions">
+            <button type="button" class="btn btn-primary" id="btnParseParticipants">Save and Parse Participants</button>
+            <button type="button" class="btn btn-danger" id="btnClearData">Clear Data</button>
+          </div>
+        </div>
+
+        <!-- 3.b: Manual Entry Field for Late Additions -->
+        <div class="manual-entry-section">
+          <label style="margin-bottom: 0.6rem; color: #fff;">Manual Participant Entry (Late Addition)</label>
+          <div class="manual-entry-grid">
+            <div>
+              <label for="manualVehicle">Vehicle</label>
+              <input type="text" id="manualVehicle" placeholder="Vehicle Name">
+            </div>
+            <div>
+              <label for="manualDriver">Driver</label>
+              <input type="text" id="manualDriver" placeholder="Driver Name">
+            </div>
+            <div>
+              <label for="manualHometown">Hometown</label>
+              <input type="text" id="manualHometown" placeholder="City, State">
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnAddManualParticipant" style="height: 48px;">
+              + Add
+            </button>
+          </div>
+        </div>
+
+        <!-- 3.c & 3.d: Generated Participant Rows -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 0.95rem; text-transform: uppercase; color: var(--text-secondary);">
+            Participant Roster (<span id="participantCount">0</span>)
+          </h3>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnClearAllDistances" title="Clear all entered distances">
+            Reset Distances
+          </button>
+        </div>
+
+        <div class="participants-container" id="participantsList">
+          <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.95rem;" id="emptyParticipantsNotice">
+            No participants loaded yet. Paste cells from Google Sheets above or enter manually.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= 4) Results and Standings Panel ================= -->
+      <section class="panel-card" id="panelResults">
+        <div class="panel-card-header">
+          <div class="panel-title">
+            <span>🏆</span>
+            <h2>Results &amp; Standings Panel</h2>
+          </div>
+          <span class="panel-badge">20s Timer</span>
+        </div>
+
+        <!-- 4.a & 4.b: Class Heading Dropdown & Standings/Final Toggle -->
+        <div class="results-header-config">
+          <div>
+            <label for="classSelect">Pulling Class Heading</label>
+            <select id="classSelect">
+              <option value="AP1 Two Wheel Drive Trucks">AP1 Two Wheel Drive Trucks</option>
+              <option value="SCS Gearbox Four Wheel Drive Trucks">SCS Gearbox Four Wheel Drive Trucks</option>
+              <option value="Proway Truck Repair Mini Modified Tractors">Proway Truck Repair Mini Modified Tractors</option>
+              <option value="Probell Racing Equipment Modified Tractors">Probell Racing Equipment Modified Tractors</option>
+              <option value="Riverside Engines Pro Stock Tractors">Riverside Engines Pro Stock Tractors</option>
+              <option value="Cyclone Diesel Proformance Pro Stock Semis">Cyclone Diesel Proformance Pro Stock Semis</option>
+              <option value="Attitude Diesel Super Stock Diesel 4 Wheel Drive Trucks">Attitude Diesel Super Stock Diesel 4 Wheel Drive Trucks</option>
+              <option value="Fennig Equipment Super Stock Tractors">Fennig Equipment Super Stock Tractors</option>
+              <option value="Mosier Industrial Services Limited Pro Diesel Trucks">Mosier Industrial Services Limited Pro Diesel Trucks</option>
+              <option value="Wellington Impliment Light-Limited Pro Stock Tractors">Wellington Impliment Light-Limited Pro Stock Tractors</option>
+              <option value="Light Limited Super Stock Tractors">Light Limited Super Stock Tractors</option>
+              <option value="__manual__">Manual Class Entry...</option>
+            </select>
+
+            <div id="manualClassWrapper" style="display: none; margin-top: 0.5rem;">
+              <input type="text" id="manualClassInput" placeholder="Enter custom class title...">
+            </div>
+          </div>
+
+          <div>
+            <label>Overlay Header Mode</label>
+            <div class="mode-toggle-group">
+              <button type="button" class="mode-toggle-btn active" id="btnModeStandings" data-mode="Current Standings">
+                Current Standings
+              </button>
+              <button type="button" class="mode-toggle-btn" id="btnModeFinal" data-mode="Final Results">
+                Final Results
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4.d: 20-Second On/Off Slider with Countdown Meter -->
+        <div class="interactive-row" id="rowResultsOverlay">
+          <div class="row-top">
+            <div class="row-controls">
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="toggleResultsOverlay">
+                  <span class="slider"></span>
+                </div>
+                <span>OVERLAY</span>
+              </label>
+              <span class="timer-tag" id="timerResultsOverlay">20s</span>
+            </div>
+            <div>
+              <div style="font-weight: 800; font-size: 1.1rem; color: #fff;" id="resultsPreviewTitle">
+                Current Standings - AP1 Two Wheel Drive Trucks
+              </div>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                Shows sorted leaderboard overlay on screen for 20 seconds.
+              </div>
+            </div>
+          </div>
+          <div class="countdown-meter-wrapper">
+            <div class="countdown-progress-bar" id="meterResultsOverlay"></div>
+          </div>
+        </div>
+
+        <!-- 4.c: Compiled Results Table Preview -->
+        <div style="margin-top: 1.25rem;">
+          <label>Compiled Results Preview</label>
+          <div class="results-table-container">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">Pos</th>
+                  <th>Vehicle</th>
+                  <th>Driver</th>
+                  <th>Hometown</th>
+                  <th style="width: 130px; text-align: right;">Distance</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                    No distance scores recorded yet. Enter distances in the Participants Panel above.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4.e: Manual Bypass / Override Section -->
+        <div class="bypass-section">
+          <div class="override-status-banner" id="overrideBanner">
+            <span>⚡ <strong>MANUAL OVERRIDE ACTIVE</strong> - Custom pasted standings are currently driving the overlay</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnDeactivateOverride">Revert to Auto</button>
+          </div>
+
+          <label for="tsvBypassInput">
+            Manual Results Bypass (Paste TSV: <code>Distance [TAB] Vehicle [TAB] Driver [TAB] Hometown</code>)
+          </label>
+          <textarea id="tsvBypassInput" placeholder="334.82	Wild Fire	Bob Williams	Salem, OH&#10;321.45	Red Power	Carl Johnson	Wapakoneta, OH"></textarea>
+          <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" id="btnActivateOverride">Activate Override</button>
+            <button type="button" class="btn btn-secondary" id="btnClearBypass">Clear Bypass Input</button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Script Entrypoint -->
+  <script src="js/control.js"></script>
+</body>
+</html>

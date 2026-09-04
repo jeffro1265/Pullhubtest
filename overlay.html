@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>Pulling Broadcast Overlay (1080p GFX)</title>
+  <!-- MQTT.js over WebSocket -->
+  <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Fixed 1920x1080 transparent broadcast canvas */
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #ffffff;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Diagnostics Connection Badge (fades after 4s on connect) */
+    .status-badge {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 9999;
+      transition: opacity 0.6s ease;
+      color: #fff;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .status-badge.connected .status-dot { background: #10b981; box-shadow: 0 0 8px #10b981; }
+    .status-badge.connecting .status-dot { background: #f59e0b; }
+
+    /* Main GFX Viewport */
+    #gfxViewport {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+    }
+
+    /* Shared Overlay Box Styling: Gradient of #082696 top-to-bottom, white text */
+    .overlay-card {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      opacity: 0;
+      background: linear-gradient(180deg, #0d38c7 0%, #082696 55%, #051860 100%);
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      border-radius: 12px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease-out;
+      pointer-events: none;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .overlay-card.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Logo Image Styling */
+    .gfx-logo {
+      max-height: 64px;
+      max-width: 85px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+    }
+
+    /* ========================================================================
+       1) Event Info Lower Third (Enlarged 2.0x)
+       - Centered horizontally
+       - Dynamically expanding
+       - Heading and subtext centered
+       - Logo on left
+       ======================================================================== */
+    .event-lower-third {
+      bottom: 60px;
+      min-width: 900px;
+      max-width: 1750px;
+      width: max-content;
+      padding: 28px 52px;
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      border-radius: 20px;
+      border: 4px solid rgba(255, 255, 255, 0.32);
+      box-sizing: border-box;
+    }
+
+    .event-logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 36px;
+      border-right: 4px solid rgba(255, 255, 255, 0.28);
+      flex-shrink: 0;
+    }
+
+    .event-logo-box .gfx-logo {
+      max-height: 128px;
+      max-width: 170px;
+    }
+
+    .event-text-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .event-heading {
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.15;
+      color: #ffffff;
+      word-break: break-word;
+    }
+
+    .event-sub {
+      font-size: 38px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #dbeafe;
+      margin-top: 8px;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    /* ========================================================================
+       2) Participant Lower Third (Enlarged 2.0x)
+       - Centered horizontally
+       - Dynamically expanding with width: max-content
+       - Logo on left
+       - Vehicle large at top, driver & hometown below
+       - Distance & "Currently" safely contained on right side inside gradient
+       ======================================================================== */
+    .participant-lower-third {
+      bottom: 60px;
+      min-width: 880px;
+      max-width: 1800px;
+      width: max-content;
+      padding: 24px 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 36px;
+      border-radius: 20px;
+      border: 4px solid rgba(255, 255, 255, 0.32);
+      box-sizing: border-box;
+    }
+
+    .participant-left-group {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .participant-logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 36px;
+      border-right: 4px solid rgba(255, 255, 255, 0.28);
+      flex-shrink: 0;
+    }
+
+    .participant-logo-box .gfx-logo {
+      max-height: 120px;
+      max-width: 160px;
+      object-fit: contain;
+    }
+
+    .participant-text-block {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      padding-right: 12px;
+    }
+
+    .participant-vehicle {
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      line-height: 1.1;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .participant-sub-info {
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #dbeafe;
+      margin-top: 6px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .participant-right-status {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      padding-left: 36px;
+      border-left: 4px solid rgba(255, 255, 255, 0.28);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .participant-currently-badge {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fbbf24; /* High-vis pulling gold */
+      background: rgba(0, 0, 0, 0.45);
+      padding: 5px 14px;
+      border-radius: 8px;
+      border: 2px solid rgba(251, 191, 36, 0.45);
+      margin-bottom: 5px;
+      white-space: nowrap;
+    }
+
+    .participant-distance-val {
+      font-size: 52px;
+      font-weight: 900;
+      font-family: "SF Pro Display", -apple-system, monospace;
+      color: #ffffff;
+      letter-spacing: 0.02em;
+      text-shadow: 0 3px 8px rgba(0,0,0,0.85);
+      white-space: nowrap;
+    }
+
+    /* ========================================================================
+       3) Results & Standings Overlay
+       - Centered horizontally
+       - Dynamically expanding based on participants
+       - Logo at top left
+       - Class Heading with Mode (Current Standings / Final Results) below it
+       - Headers above each column: Pos | Vehicle | Driver | Hometown | Distance
+       ======================================================================== */
+    .results-overlay {
+      top: 60px;
+      min-width: 960px;
+      max-width: 1300px;
+      width: clamp(960px, 65vw, 1300px);
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      border: 3px solid rgba(255, 255, 255, 0.32);
+    }
+
+    .results-card-header {
+      position: relative;
+      padding: 20px 120px;
+      background: rgba(0, 0, 0, 0.38);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .results-logo {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      max-height: 72px;
+      max-width: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+      flex-shrink: 0;
+    }
+
+    .results-header-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+    }
+
+    .results-class-title {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ffffff;
+      line-height: 1.15;
+      text-align: center;
+      width: 100%;
+    }
+
+    .results-mode-subtitle {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fbbf24; /* Pulling gold accent */
+      margin-top: 5px;
+      line-height: 1.15;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Table Container */
+    .results-table-wrap {
+      padding: 10px 20px 18px 20px;
+      width: 100%;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .results-table thead th {
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .results-table thead th.th-pos { width: 70px; text-align: center; }
+    .results-table thead th.th-vehicle { width: 32%; }
+    .results-table thead th.th-driver { width: 26%; }
+    .results-table thead th.th-hometown { width: 24%; }
+    .results-table thead th.th-distance { width: 18%; text-align: right; }
+
+    .results-table tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      transition: background-color 0.2s;
+    }
+
+    .results-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .results-table tbody td {
+      padding: 10px 14px;
+      font-size: 20px;
+      font-weight: 700;
+      vertical-align: middle;
+      color: #ffffff;
+    }
+
+    .col-pos {
+      text-align: center;
+      font-weight: 900;
+      font-size: 22px;
+      color: #fbbf24; /* Pulling gold */
+    }
+
+    .col-vehicle {
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 0.02em;
+    }
+
+    .col-driver {
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .col-hometown {
+      font-weight: 500;
+      color: #bfdbfe;
+      font-size: 18px;
+    }
+
+    .col-distance {
+      text-align: right;
+      font-family: monospace;
+      font-weight: 900;
+      font-size: 22px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Diagnostics Connection Pill -->
+  <div class="status-badge" id="statusBadge">
+    <span class="status-dot"></span>
+    <span id="statusMessage">Connecting...</span>
+  </div>
+
+  <div id="gfxViewport">
+
+    <!-- ==================================================================
+         1) Event Info Lower Third
+         ================================================================== -->
+    <div class="overlay-card event-lower-third" id="eventOverlay">
+      <div class="event-logo-box">
+        <img src="logo.png" alt="Logo" class="gfx-logo" onerror="this.style.display='none'">
+      </div>
+      <div class="event-text-container">
+        <div class="event-heading" id="eventHeadingDisplay">Event Heading</div>
+        <div class="event-sub" id="eventSubDisplay">Event Sub Text</div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         2) Participant Lower Third
+         ================================================================== -->
+    <div class="overlay-card participant-lower-third" id="participantOverlay">
+      <div class="participant-left-group">
+        <div class="participant-logo-box">
+          <img src="logo.png" alt="Logo" class="gfx-logo" onerror="this.style.display='none'">
+        </div>
+        <div class="participant-text-block">
+          <div class="participant-vehicle" id="partVehicleDisplay">VEHICLE NAME</div>
+          <div class="participant-sub-info" id="partSubDisplay">Driver Name • Hometown</div>
+        </div>
+      </div>
+
+      <!-- Distance and "Currently" placed on the right side -->
+      <div class="participant-right-status" id="partRightStatus" style="display: none;">
+        <div class="participant-currently-badge" id="partCurrentlyBadge">CURRENTLY 1ST</div>
+        <div class="participant-distance-val" id="partDistanceDisplay">000.00 FT</div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         3) Results Overlay (Standings / Leaderboard)
+         ================================================================== -->
+    <div class="overlay-card results-overlay" id="resultsOverlay">
+      <div class="results-card-header">
+        <img src="logo.png" alt="Logo" class="results-logo" onerror="this.style.display='none'">
+        <div class="results-header-text">
+          <div class="results-class-title" id="resultsClassDisplay">CURRENT CLASS</div>
+          <div class="results-mode-subtitle" id="resultsModeDisplay">CURRENT STANDINGS</div>
+        </div>
+      </div>
+
+      <div class="results-table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th class="th-pos">Pos</th>
+              <th class="th-vehicle">Vehicle</th>
+              <th class="th-driver">Driver</th>
+              <th class="th-hometown">Hometown</th>
+              <th class="th-distance">Distance</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+            <!-- Rows dynamically generated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // Parse Query Parameters: ?key=channelKey&broker=customBroker
+      const urlParams = new URLSearchParams(window.location.search);
+      const channelKey = urlParams.get('key');
+      const customBroker = urlParams.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
+
+      const statusBadge = document.getElementById('statusBadge');
+      const statusMessage = document.getElementById('statusMessage');
+
+      const eventOverlay = document.getElementById('eventOverlay');
+      const eventHeadingDisplay = document.getElementById('eventHeadingDisplay');
+      const eventSubDisplay = document.getElementById('eventSubDisplay');
+
+      const participantOverlay = document.getElementById('participantOverlay');
+      const partVehicleDisplay = document.getElementById('partVehicleDisplay');
+      const partSubDisplay = document.getElementById('partSubDisplay');
+      const partRightStatus = document.getElementById('partRightStatus');
+      const partCurrentlyBadge = document.getElementById('partCurrentlyBadge');
+      const partDistanceDisplay = document.getElementById('partDistanceDisplay');
+
+      const resultsOverlay = document.getElementById('resultsOverlay');
+      const resultsClassDisplay = document.getElementById('resultsClassDisplay');
+      const resultsModeDisplay = document.getElementById('resultsModeDisplay');
+      const resultsTableBody = document.getElementById('resultsTableBody');
+
+      if (!channelKey) {
+        if (statusBadge && statusMessage) {
+          statusBadge.className = 'status-badge';
+          statusMessage.textContent = 'NO ?KEY= IN URL';
+        }
+        return;
+      }
+
+      if (statusMessage) {
+        statusMessage.textContent = `Connecting: ${channelKey}`;
+      }
+
+      const clientId = `pulling_gfx_${Math.random().toString(16).substring(2, 8)}`;
+      let client = null;
+
+      try {
+        client = mqtt.connect(customBroker, {
+          clientId,
+          clean: true,
+          connectTimeout: 8000,
+          reconnectPeriod: 3000,
+          keepalive: 30
+        });
+
+        client.on('connect', () => {
+          if (statusBadge && statusMessage) {
+            statusBadge.className = 'status-badge connected';
+            statusMessage.textContent = `Live: ${channelKey}`;
+
+            // Auto-fade connection badge after 4s
+            setTimeout(() => {
+              statusBadge.style.opacity = '0';
+            }, 4000);
+          }
+
+          const topic = `pulling-livestream/${channelKey}/state`;
+          client.subscribe(topic, { qos: 1 }, (err) => {
+            if (err) console.error('Subscription error:', err);
+          });
+        });
+
+        client.on('message', (topic, message) => {
+          try {
+            const payload = JSON.parse(message.toString());
+            handleStateUpdate(payload);
+          } catch (e) {
+            console.error('Failed to parse overlay state:', e);
+          }
+        });
+
+        client.on('close', () => {
+          if (statusBadge && statusMessage) {
+            statusBadge.style.opacity = '1';
+            statusBadge.className = 'status-badge';
+            statusMessage.textContent = 'Disconnected';
+          }
+        });
+
+        client.on('reconnect', () => {
+          if (statusBadge && statusMessage) {
+            statusBadge.style.opacity = '1';
+            statusBadge.className = 'status-badge connecting';
+            statusMessage.textContent = 'Reconnecting...';
+          }
+        });
+
+      } catch (err) {
+        console.error('MQTT setup error:', err);
+      }
+
+      function handleStateUpdate(state) {
+        const { activeOverlay, overlayData } = state;
+
+        // Hide all overlays first
+        hideAll();
+
+        if (!activeOverlay || activeOverlay === 'none' || !overlayData) {
+          return;
+        }
+
+        // 1) Event Info Lower Third (Event, Announcer, or Misc)
+        if (['event_info', 'announcer_info', 'misc_info'].includes(activeOverlay)) {
+          eventHeadingDisplay.textContent = overlayData.heading || '';
+          eventSubDisplay.textContent = overlayData.subText || '';
+          eventOverlay.classList.add('is-visible');
+        }
+
+        // 2) Participant Lower Third
+        else if (activeOverlay === 'participant') {
+          partVehicleDisplay.textContent = overlayData.vehicle || 'Unknown Vehicle';
+
+          const driver = overlayData.driver || '';
+          const hometown = overlayData.hometown || '';
+          if (driver && hometown) {
+            partSubDisplay.textContent = `${driver} • ${hometown}`;
+          } else {
+            partSubDisplay.textContent = driver || hometown || '';
+          }
+
+          // Distance and "Currently" on the right side (only shown if a distance value is entered)
+          if (overlayData.distance && String(overlayData.distance).trim()) {
+            partRightStatus.style.display = 'flex';
+            const distNum = String(overlayData.distance).trim();
+            partDistanceDisplay.textContent = `${distNum} FT`;
+
+            if (overlayData.position) {
+              partCurrentlyBadge.textContent = `CURRENTLY ${getOrdinal(overlayData.position)}`;
+              partCurrentlyBadge.style.display = 'inline-block';
+            } else {
+              partCurrentlyBadge.style.display = 'none';
+            }
+          } else {
+            partRightStatus.style.display = 'none';
+          }
+
+          participantOverlay.classList.add('is-visible');
+        }
+
+        // 3) Results & Standings Overlay
+        else if (activeOverlay === 'results') {
+          const className = overlayData.className || 'TRUCK & TRACTOR PULLING';
+          const modeName = overlayData.mode || 'CURRENT STANDINGS';
+
+          if (resultsClassDisplay) resultsClassDisplay.textContent = className;
+          if (resultsModeDisplay) resultsModeDisplay.textContent = modeName;
+
+          const items = overlayData.items || [];
+          if (items.length === 0) {
+            resultsTableBody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align: center; color: #bfdbfe; padding: 24px;">
+                  No distance scores recorded yet
+                </td>
+              </tr>
+            `;
+          } else {
+            resultsTableBody.innerHTML = items.map(it => `
+              <tr>
+                <td class="col-pos">${it.position}</td>
+                <td class="col-vehicle">${escapeHtml(it.vehicle)}</td>
+                <td class="col-driver">${escapeHtml(it.driver)}</td>
+                <td class="col-hometown">${escapeHtml(it.hometown || '-')}</td>
+                <td class="col-distance">${escapeHtml(it.distance)}'</td>
+              </tr>
+            `).join('');
+          }
+
+          resultsOverlay.classList.add('is-visible');
+        }
+      }
+
+      function hideAll() {
+        if (eventOverlay) eventOverlay.classList.remove('is-visible');
+        if (participantOverlay) participantOverlay.classList.remove('is-visible');
+        if (resultsOverlay) resultsOverlay.classList.remove('is-visible');
+      }
+
+      function getOrdinal(n) {
+        const num = parseInt(n, 10);
+        if (isNaN(num)) return n;
+        const s = ['TH', 'ST', 'ND', 'RD'];
+        const v = num % 100;
+        return num + (s[(v - 20) % 10] || s[v] || s[0]);
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+    })();
+  </script>
+</body>
+</html>
