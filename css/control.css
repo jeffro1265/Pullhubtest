@@ -981,3 +981,11 @@ input:checked + .slider:before {
   gap: 0.75rem;
 }
 
+#btnToggleRunOrder.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  color: #ffffff !important;
+  border-color: #f87171 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
+}
+
+

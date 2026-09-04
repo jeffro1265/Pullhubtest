@@ -210,10 +210,19 @@
         </div>
 
         <!-- 3.c & 3.d: Generated Participant Rows -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
           <h3 style="font-size: 0.95rem; text-transform: uppercase; color: var(--text-secondary);">
             Participant Roster (<span id="participantCount">0</span>)
           </h3>
+          <button type="button" class="btn btn-primary btn-sm" id="btnToggleRunOrder" title="Display Run Order overlay on broadcast (20s)" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700;">
+            <span id="btnRunOrderIcon">📋</span>
+            <span id="labelRunOrder">Show Run Order (20s)</span>
+          </button>
+        </div>
+
+        <!-- Run Order 20s Countdown Meter -->
+        <div id="rowRunOrderMeter" style="display: none; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
+          <div class="countdown-progress-bar" id="meterRunOrder" style="height: 100%; width: 0%;"></div>
         </div>
 
         <div class="participants-container" id="participantsList">

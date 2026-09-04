@@ -418,6 +418,158 @@
       color: #ffffff;
       white-space: nowrap;
     }
+
+    /* ========================================================================
+       4) Run Order / Partial Roster Overlay (Left Docked, Dynamic 1 or 2 Cols)
+       - Limited to the far left of the screen
+       - Same #082696 gradient color scheme
+       - Dynamically expands to 2 columns if > 10 participants (no scrollbars)
+       ======================================================================== */
+    .run-order-overlay {
+      left: 60px;
+      top: 50%;
+      bottom: auto;
+      transform: translateY(-50%) translateX(-40px);
+      width: 660px;
+      max-width: 720px;
+      max-height: 940px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 24px;
+      border: 4px solid rgba(255, 255, 255, 0.32);
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 0;
+      z-index: 20;
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.35s ease, max-width 0.35s ease;
+    }
+
+    .run-order-overlay.is-visible {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+
+    /* Dynamically expanded 2-column mode when participants > 10 */
+    .run-order-overlay.two-cols {
+      width: max-content;
+      max-width: 1380px;
+    }
+
+    .run-order-card-header {
+      background: rgba(4, 18, 70, 0.85);
+      border-bottom: 3px solid rgba(255, 255, 255, 0.25);
+      padding: 24px 30px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-shrink: 0;
+    }
+
+    .run-order-logo {
+      max-height: 72px;
+      max-width: 98px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+      flex-shrink: 0;
+    }
+
+    .run-order-header-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .run-order-title {
+      font-size: 39px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fbbf24; /* Pulling gold accent */
+      line-height: 1.1;
+    }
+
+    .run-order-body {
+      padding: 10px 24px 20px 24px;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    .run-order-col {
+      flex: 1;
+      min-width: 580px;
+      max-width: 630px;
+    }
+
+    .run-order-col + .run-order-col {
+      border-left: 3px solid rgba(255, 255, 255, 0.22);
+      padding-left: 24px;
+      margin-left: 24px;
+    }
+
+    .run-order-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .run-order-table thead th {
+      padding: 14px 12px;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .th-ro-order {
+      width: 90px;
+      text-align: center;
+    }
+
+    .th-ro-vehicle {
+      text-align: left;
+    }
+
+    .run-order-table tbody tr {
+      border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .run-order-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .run-order-table tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .run-order-table td {
+      padding: 13px 12px;
+      vertical-align: middle;
+    }
+
+    .col-ro-order {
+      text-align: center;
+      font-size: 30px;
+      font-weight: 900;
+      color: #fbbf24; /* Pulling gold accent */
+      font-family: monospace;
+    }
+
+    .col-ro-vehicle {
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
+    }
   </style>
 </head>
 <body>
@@ -494,6 +646,21 @@
       </div>
     </div>
 
+    <!-- ==================================================================
+         4) Run Order / Partial Roster Overlay (Left Docked)
+         ================================================================== -->
+    <div class="overlay-card run-order-overlay" id="runOrderOverlay">
+      <div class="run-order-card-header">
+        <img src="logo.png" alt="Logo" class="run-order-logo" onerror="this.style.display='none'">
+        <div class="run-order-header-text">
+          <div class="run-order-title">RUN ORDER</div>
+        </div>
+      </div>
+      <div class="run-order-body" id="runOrderBody">
+        <!-- Dynamically rendered as 1 column (<=10) or 2 columns (>10) -->
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -523,6 +690,9 @@
       const resultsClassDisplay = document.getElementById('resultsClassDisplay');
       const resultsModeDisplay = document.getElementById('resultsModeDisplay');
       const resultsTableBody = document.getElementById('resultsTableBody');
+
+      const runOrderOverlay = document.getElementById('runOrderOverlay');
+      const runOrderBody = document.getElementById('runOrderBody');
 
       if (!channelKey) {
         if (statusBadge && statusMessage) {
@@ -676,12 +846,78 @@
 
           resultsOverlay.classList.add('is-visible');
         }
+
+        // 4) Run Order / Partial Roster Overlay
+        else if (activeOverlay === 'run_order' || activeOverlay === 'roster') {
+          const items = overlayData.items || [];
+
+          if (items.length === 0) {
+            runOrderOverlay.classList.remove('two-cols');
+            runOrderBody.innerHTML = `
+              <div class="run-order-col">
+                <div style="text-align: center; color: #bfdbfe; padding: 36px; font-weight: 600; font-size: 24px;">
+                  No participants loaded
+                </div>
+              </div>
+            `;
+          } else {
+            const formatRow = (it) => {
+              const rawVehicle = (it.vehicle || 'Unknown Vehicle').trim();
+              const formattedVehicle = (rawVehicle.startsWith('"') && rawVehicle.endsWith('"')) || (rawVehicle.startsWith('“') && rawVehicle.endsWith('”'))
+                ? rawVehicle
+                : `"${rawVehicle}"`;
+
+              return `
+                <tr>
+                  <td class="col-ro-order">${it.order}</td>
+                  <td class="col-ro-vehicle">${escapeHtml(formattedVehicle)}</td>
+                </tr>
+              `;
+            };
+
+            const buildTableCol = (slice) => `
+              <div class="run-order-col">
+                <table class="run-order-table">
+                  <thead>
+                    <tr>
+                      <th class="th-ro-order">#</th>
+                      <th class="th-ro-vehicle">Vehicle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${slice.map(formatRow).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+
+            if (items.length <= 10) {
+              runOrderOverlay.classList.remove('two-cols');
+              runOrderBody.innerHTML = buildTableCol(items);
+            } else {
+              runOrderOverlay.classList.add('two-cols');
+              let col1Items, col2Items;
+              if (items.length <= 20) {
+                col1Items = items.slice(0, 10);
+                col2Items = items.slice(10);
+              } else {
+                const mid = Math.ceil(items.length / 2);
+                col1Items = items.slice(0, mid);
+                col2Items = items.slice(mid);
+              }
+              runOrderBody.innerHTML = buildTableCol(col1Items) + buildTableCol(col2Items);
+            }
+          }
+
+          runOrderOverlay.classList.add('is-visible');
+        }
       }
 
       function hideAll() {
         if (eventOverlay) eventOverlay.classList.remove('is-visible');
         if (participantOverlay) participantOverlay.classList.remove('is-visible');
         if (resultsOverlay) resultsOverlay.classList.remove('is-visible');
+        if (runOrderOverlay) runOrderOverlay.classList.remove('is-visible');
       }
 
       function getOrdinal(n) {

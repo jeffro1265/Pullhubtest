@@ -454,6 +454,89 @@
       btnAddManual.addEventListener('click', handleManualParticipantAdd);
     }
 
+    // 5.3.b: Run Order Overlay Button
+    const btnToggleRunOrder = document.getElementById('btnToggleRunOrder');
+    const labelRunOrder = document.getElementById('labelRunOrder');
+    const rowRunOrderMeter = document.getElementById('rowRunOrderMeter');
+    const meterRunOrder = document.getElementById('meterRunOrder');
+
+    if (btnToggleRunOrder) {
+      btnToggleRunOrder.addEventListener('click', () => {
+        // If run order overlay is currently active, clicking again stops it
+        if (activeTimer && activeTimer.isRunOrder) {
+          cancelActiveTimer();
+          return;
+        }
+
+        if (!appState.participants || appState.participants.length === 0) {
+          showToast('No participants loaded in roster', 'warning');
+          return;
+        }
+
+        // Cancel any active overlay first
+        cancelActiveTimer();
+
+        const durationSeconds = 20;
+        const totalMs = durationSeconds * 1000;
+        const startTime = Date.now();
+
+        // Publish run order state
+        mqttService.publishState({
+          activeOverlay: 'run_order',
+          overlayData: {
+            type: 'run_order',
+            title: 'RUN ORDER',
+            className: getEffectiveClassName(),
+            items: appState.participants.map((p, idx) => ({
+              order: idx + 1,
+              vehicle: p.vehicle || 'Unknown Vehicle'
+            }))
+          }
+        });
+
+        // Update button & meter UI
+        btnToggleRunOrder.classList.add('btn-danger');
+        if (labelRunOrder) labelRunOrder.textContent = `Hide Run Order (${durationSeconds}s)`;
+        if (rowRunOrderMeter) rowRunOrderMeter.style.display = 'block';
+        if (meterRunOrder) meterRunOrder.style.width = '100%';
+
+        const updateMeter = () => {
+          const elapsed = Date.now() - startTime;
+          const remainingMs = Math.max(0, totalMs - elapsed);
+          const fraction = remainingMs / totalMs;
+
+          if (meterRunOrder) {
+            meterRunOrder.style.width = `${(fraction * 100).toFixed(1)}%`;
+          }
+
+          if (labelRunOrder) {
+            const remSecs = Math.ceil(remainingMs / 1000);
+            labelRunOrder.textContent = `Hide Run Order (${remSecs}s)`;
+          }
+
+          if (remainingMs <= 0) {
+            cancelActiveTimer();
+          } else {
+            activeTimer.animFrame = requestAnimationFrame(updateMeter);
+          }
+        };
+
+        activeTimer = {
+          isRunOrder: true,
+          durationSeconds,
+          animFrame: requestAnimationFrame(updateMeter),
+          onCancel: () => {
+            btnToggleRunOrder.classList.remove('btn-danger');
+            if (labelRunOrder) labelRunOrder.textContent = 'Show Run Order (20s)';
+            if (rowRunOrderMeter) rowRunOrderMeter.style.display = 'none';
+            if (meterRunOrder) meterRunOrder.style.width = '0%';
+          }
+        };
+
+        showToast('Run Order overlay displayed (20s)', 'success');
+      });
+    }
+
     // 5.4: Results & Standings Panel
     const classSelect = document.getElementById('classSelect');
     const manualClassInput = document.getElementById('manualClassInput');
@@ -1174,6 +1257,13 @@
     }
     if (activeTimer.timerTag) {
       activeTimer.timerTag.textContent = `${activeTimer.durationSeconds || 10}s`;
+    }
+    if (typeof activeTimer.onCancel === 'function') {
+      try {
+        activeTimer.onCancel();
+      } catch (e) {
+        console.error('Error in timer onCancel cleanup:', e);
+      }
     }
 
     activeTimer = null;
