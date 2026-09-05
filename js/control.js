@@ -197,7 +197,7 @@
     brokerUrl: 'wss://broker.hivemq.com:8884/mqtt',
     eventInfo: { heading: '', sub: '' },
     announcerInfo: { heading: '', sub: '' },
-    miscInfo: { heading: '', sub: '' },
+    miscInfo: { heading: 'AP1 Two Wheel Drive Trucks Class Winner', sub: '' },
     participantsRaw: '',
     participants: [], // [{ id, vehicle, driver, hometown, distance, position }]
     selectedClass: 'AP1 Two Wheel Drive Trucks',
@@ -229,7 +229,7 @@
     appState.brokerUrl = Storage.load(STORAGE_KEYS.BROKER_URL, 'wss://broker.hivemq.com:8884/mqtt') || 'wss://broker.hivemq.com:8884/mqtt';
     appState.eventInfo = Storage.load(STORAGE_KEYS.EVENT_INFO, { heading: '', sub: '' });
     appState.announcerInfo = Storage.load(STORAGE_KEYS.ANNOUNCER_INFO, { heading: '', sub: '' });
-    appState.miscInfo = Storage.load(STORAGE_KEYS.MISC_INFO, { heading: '', sub: '' });
+    appState.miscInfo = Storage.load(STORAGE_KEYS.MISC_INFO, { heading: 'AP1 Two Wheel Drive Trucks Class Winner', sub: '' });
     appState.participantsRaw = Storage.load(STORAGE_KEYS.PARTICIPANTS_RAW, '') || '';
     appState.participants = Storage.load(STORAGE_KEYS.PARTICIPANTS_LIST, []) || [];
     appState.selectedClass = Storage.load(STORAGE_KEYS.SELECTED_CLASS, 'AP1 Two Wheel Drive Trucks');
@@ -257,8 +257,16 @@
 
     const misH = document.getElementById('miscHeading');
     const misS = document.getElementById('miscSub');
-    if (misH) misH.value = appState.miscInfo.heading || '';
-    if (misS) misS.value = appState.miscInfo.sub || '';
+    if (misH) {
+      if (appState.miscInfo && appState.miscInfo.heading) {
+        misH.value = appState.miscInfo.heading;
+      }
+      if (!misH.value && misH.options && misH.options.length > 0) {
+        misH.selectedIndex = 0;
+        appState.miscInfo.heading = misH.value;
+      }
+    }
+    if (misS) misS.value = (appState.miscInfo && appState.miscInfo.sub) || '';
 
     const tsvInput = document.getElementById('tsvParticipantsInput');
     if (tsvInput) tsvInput.value = appState.participantsRaw || '';
@@ -401,14 +409,21 @@
       meterId: 'meterMiscInfo',
       timerTagId: 'timerMiscInfo',
       durationSeconds: 15,
-      getPayload: () => ({
-        activeOverlay: 'misc_info',
-        overlayData: {
-          type: 'misc_info',
-          heading: appState.miscInfo.heading || 'Track Notice',
-          subText: appState.miscInfo.sub || ''
-        }
-      })
+      getPayload: () => {
+        const classEl = document.getElementById('miscHeading');
+        const classVal = (classEl && classEl.value) || appState.miscInfo.heading || 'AP1 Two Wheel Drive Trucks Class Winner';
+        const driverVal = (appState.miscInfo && appState.miscInfo.sub) || '';
+        return {
+          activeOverlay: 'misc_info',
+          overlayData: {
+            type: 'misc_info',
+            heading: driverVal,
+            subText: classVal,
+            driver: driverVal,
+            classWinner: classVal
+          }
+        };
+      }
     });
 
     // 2.iv: Tonight's Classes Setup & Persistence

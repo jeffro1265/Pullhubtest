@@ -868,10 +868,25 @@
           return;
         }
 
-        // 1) Event Info Lower Third (Event, Announcer, or Misc)
+        // 1) Event Info Lower Third (Event, Announcer, or Misc / Class Winner)
         if (['event_info', 'announcer_info', 'misc_info'].includes(activeOverlay)) {
-          eventHeadingDisplay.textContent = overlayData.heading || '';
-          eventSubDisplay.textContent = overlayData.subText || '';
+          if (activeOverlay === 'misc_info') {
+            // Driver name is the larger text on top, Class Winner is below
+            if (overlayData.driver !== undefined || overlayData.classWinner !== undefined) {
+              eventHeadingDisplay.textContent = overlayData.driver || '';
+              eventSubDisplay.textContent = overlayData.classWinner || '';
+            } else if ((overlayData.heading || '').includes('Class Winner')) {
+              // Backwards compatibility if sent with class as heading
+              eventHeadingDisplay.textContent = overlayData.subText || '';
+              eventSubDisplay.textContent = overlayData.heading || '';
+            } else {
+              eventHeadingDisplay.textContent = overlayData.heading || '';
+              eventSubDisplay.textContent = overlayData.subText || '';
+            }
+          } else {
+            eventHeadingDisplay.textContent = overlayData.heading || '';
+            eventSubDisplay.textContent = overlayData.subText || '';
+          }
           eventOverlay.classList.add('is-visible');
         }
 
