@@ -988,4 +988,68 @@ input:checked + .slider:before {
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
 }
 
+/* ---------------- Tonight's Classes Checkbox Grid ---------------- */
+.classes-checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+@media (min-width: 640px) {
+  .classes-checkbox-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .classes-checkbox-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.class-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  min-height: 44px;
+}
+
+.class-checkbox-item:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: var(--bg-input-focus);
+}
+
+.class-checkbox-item:has(input:checked) {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.class-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-amber);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.class-check-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.class-checkbox-item:has(input:checked) .class-check-text {
+  color: #fff;
+}
+
+
 

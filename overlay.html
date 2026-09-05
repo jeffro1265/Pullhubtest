@@ -379,9 +379,10 @@
     }
 
     .results-table tbody td {
-      padding: 10px 14px;
-      font-size: 20px;
+      padding: 5px 14px;
+      font-size: 26px;
       font-weight: 700;
+      line-height: 1.2;
       vertical-align: middle;
       color: #ffffff;
     }
@@ -389,32 +390,44 @@
     .col-pos {
       text-align: center;
       font-weight: 900;
-      font-size: 22px;
+      font-size: 28px;
       color: #fbbf24; /* Pulling gold */
+      font-family: monospace;
     }
 
     .col-vehicle {
       font-weight: 900;
+      font-size: 27px;
       color: #ffffff;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .col-driver {
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 25px;
       color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .col-hometown {
-      font-weight: 500;
+      font-weight: 600;
       color: #bfdbfe;
-      font-size: 18px;
+      font-size: 23px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .col-distance {
       text-align: right;
       font-family: monospace;
       font-weight: 900;
-      font-size: 22px;
+      font-size: 28px;
       color: #ffffff;
       white-space: nowrap;
     }
@@ -570,6 +583,69 @@
       text-overflow: ellipsis;
       max-width: 480px;
     }
+
+    /* ========================================================================
+       5) Tonight's Classes Overlay
+       - Visually identical to run order overlay
+       - Left docked, dynamic 1 or 2 columns
+       - Dynamically expands to fit entire class name without cutoff
+       ======================================================================== */
+    .tonight-classes-overlay {
+      width: max-content !important;
+      min-width: 660px;
+      max-width: 1820px !important;
+      max-height: 960px;
+    }
+
+    .tonight-classes-overlay .run-order-body {
+      width: max-content;
+      max-width: 100%;
+    }
+
+    .tonight-classes-overlay .run-order-col {
+      width: max-content;
+      min-width: 0;
+      max-width: none;
+      flex: 1 1 auto;
+    }
+
+    .tonight-classes-overlay .run-order-table {
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .tonight-classes-overlay .th-ro-class {
+      text-align: left;
+    }
+
+    .tonight-classes-overlay .col-ro-class {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+      max-width: none !important;
+      padding-right: 18px;
+    }
+
+    .tonight-classes-overlay.two-cols {
+      width: max-content !important;
+      max-width: 1820px !important;
+    }
+
+    .tonight-classes-overlay.two-cols .run-order-col {
+      width: max-content;
+      min-width: 0;
+      max-width: 880px;
+      flex: 1 1 auto;
+    }
+
+    .tonight-classes-overlay.two-cols .col-ro-class {
+      font-size: 24px;
+      max-width: none !important;
+    }
   </style>
 </head>
 <body>
@@ -661,6 +737,21 @@
       </div>
     </div>
 
+    <!-- ==================================================================
+         5) Tonight's Classes Overlay (Left Docked)
+         ================================================================== -->
+    <div class="overlay-card run-order-overlay tonight-classes-overlay" id="tonightClassesOverlay">
+      <div class="run-order-card-header">
+        <img src="logo.png" alt="Logo" class="run-order-logo" onerror="this.style.display='none'">
+        <div class="run-order-header-text">
+          <div class="run-order-title">Tonight's Classes</div>
+        </div>
+      </div>
+      <div class="run-order-body" id="tonightClassesBody">
+        <!-- Dynamically rendered as 1 column (<=10) or 2 columns (>10) -->
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -693,6 +784,9 @@
 
       const runOrderOverlay = document.getElementById('runOrderOverlay');
       const runOrderBody = document.getElementById('runOrderBody');
+
+      const tonightClassesOverlay = document.getElementById('tonightClassesOverlay');
+      const tonightClassesBody = document.getElementById('tonightClassesBody');
 
       if (!channelKey) {
         if (statusBadge && statusMessage) {
@@ -911,6 +1005,62 @@
 
           runOrderOverlay.classList.add('is-visible');
         }
+
+        // 5) Tonight's Classes Overlay
+        else if (activeOverlay === 'tonight_classes' || activeOverlay === 'classes') {
+          const items = overlayData.items || [];
+
+          if (items.length === 0) {
+            tonightClassesOverlay.classList.remove('two-cols');
+            tonightClassesBody.innerHTML = `
+              <div class="run-order-col">
+                <div style="text-align: center; color: #bfdbfe; padding: 36px; font-weight: 600; font-size: 24px;">
+                  No classes selected
+                </div>
+              </div>
+            `;
+          } else {
+            const formatClassRow = (it) => {
+              const name = typeof it === 'string' ? it : (it.className || it.name || '');
+              const num = typeof it === 'object' && it.order ? it.order : '';
+              return `
+                <tr>
+                  <td class="col-ro-order">${num}</td>
+                  <td class="col-ro-class">${escapeHtml(name)}</td>
+                </tr>
+              `;
+            };
+
+            const buildClassTableCol = (slice) => `
+              <div class="run-order-col">
+                <table class="run-order-table">
+                  <thead>
+                    <tr>
+                      <th class="th-ro-order">#</th>
+                      <th class="th-ro-class">Class</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${slice.map(formatClassRow).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+
+            if (items.length <= 10) {
+              tonightClassesOverlay.classList.remove('two-cols');
+              tonightClassesBody.innerHTML = buildClassTableCol(items);
+            } else {
+              tonightClassesOverlay.classList.add('two-cols');
+              const half = Math.ceil(items.length / 2);
+              const col1Items = items.slice(0, half);
+              const col2Items = items.slice(half);
+              tonightClassesBody.innerHTML = buildClassTableCol(col1Items) + buildClassTableCol(col2Items);
+            }
+          }
+
+          tonightClassesOverlay.classList.add('is-visible');
+        }
       }
 
       function hideAll() {
@@ -918,6 +1068,7 @@
         if (participantOverlay) participantOverlay.classList.remove('is-visible');
         if (resultsOverlay) resultsOverlay.classList.remove('is-visible');
         if (runOrderOverlay) runOrderOverlay.classList.remove('is-visible');
+        if (tonightClassesOverlay) tonightClassesOverlay.classList.remove('is-visible');
       }
 
       function getOrdinal(n) {

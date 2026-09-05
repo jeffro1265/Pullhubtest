@@ -163,6 +163,91 @@
           </div>
         </div>
 
+        <!-- 2.iv: Tonight's Classes -->
+        <div class="interactive-row" id="rowTonightClasses">
+          <div class="row-top">
+            <div class="row-controls">
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="toggleTonightClasses">
+                  <span class="slider"></span>
+                </div>
+                <span>OVERLAY</span>
+              </label>
+              <span class="timer-tag" id="timerTonightClasses">20s</span>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <div>
+                  <div style="font-weight: 800; font-size: 1.05rem; color: #fff;">Tonight's Classes</div>
+                  <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Check the classes competing in tonight's event to display on screen.
+                  </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnSelectAllClasses" style="min-height: 32px; padding: 0.2rem 0.65rem; font-size: 0.8rem;">
+                    Select All
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnClearAllClasses" style="min-height: 32px; padding: 0.2rem 0.65rem; font-size: 0.8rem;">
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              <!-- 11 Class Checkboxes Grid -->
+              <div class="classes-checkbox-grid">
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="AP1 Two Wheel Drive Trucks" checked>
+                  <span class="class-check-text">AP1 Two Wheel Drive Trucks</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="SCS Gearbox Four Wheel Drive Trucks" checked>
+                  <span class="class-check-text">SCS Gearbox Four Wheel Drive Trucks</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Proway Truck Repair Mini Modified Tractors" checked>
+                  <span class="class-check-text">Proway Truck Repair Mini Modified Tractors</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Probell Racing Equipment Modified Tractors" checked>
+                  <span class="class-check-text">Probell Racing Equipment Modified Tractors</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Riverside Engines Pro Stock Tractors" checked>
+                  <span class="class-check-text">Riverside Engines Pro Stock Tractors</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Cyclone Diesel Proformance Pro Stock Semis" checked>
+                  <span class="class-check-text">Cyclone Diesel Proformance Pro Stock Semis</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Attitude Diesel Super Stock Diesel 4 Wheel Drive Trucks" checked>
+                  <span class="class-check-text">Attitude Diesel Super Stock Diesel 4 Wheel Drive Trucks</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Fennig Equipment Super Stock Tractors" checked>
+                  <span class="class-check-text">Fennig Equipment Super Stock Tractors</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Mosier Industrial Services Limited Pro Diesel Trucks" checked>
+                  <span class="class-check-text">Mosier Industrial Services Limited Pro Diesel Trucks</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Wellington Impliment Light-Limited Pro Stock Tractors" checked>
+                  <span class="class-check-text">Wellington Impliment Light-Limited Pro Stock Tractors</span>
+                </label>
+                <label class="class-checkbox-item">
+                  <input type="checkbox" class="class-check" value="Light Limited Super Stock Tractors" checked>
+                  <span class="class-check-text">Light Limited Super Stock Tractors</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="countdown-meter-wrapper">
+            <div class="countdown-progress-bar" id="meterTonightClasses"></div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ================= 3) Participants List Panel ================= -->

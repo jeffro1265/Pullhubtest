@@ -22,7 +22,8 @@
     CUSTOM_CLASS: 'pulling_custom_class',
     RESULTS_MODE: 'pulling_results_mode',
     BYPASS_RAW: 'pulling_bypass_raw',
-    BYPASS_ACTIVE: 'pulling_bypass_active'
+    BYPASS_ACTIVE: 'pulling_bypass_active',
+    TONIGHT_CLASSES: 'pulling_tonight_classes'
   };
 
   const memoryFallback = {};
@@ -408,6 +409,83 @@
           subText: appState.miscInfo.sub || ''
         }
       })
+    });
+
+    // 2.iv: Tonight's Classes Setup & Persistence
+    const classCheckboxes = document.querySelectorAll('.class-check');
+    const btnSelectAllClasses = document.getElementById('btnSelectAllClasses');
+    const btnClearAllClasses = document.getElementById('btnClearAllClasses');
+
+    const getSelectedClasses = () => {
+      const selected = [];
+      classCheckboxes.forEach(cb => {
+        if (cb.checked) selected.push(cb.value);
+      });
+      return selected;
+    };
+
+    const saveCheckedClasses = () => {
+      const selected = getSelectedClasses();
+      Storage.save(STORAGE_KEYS.TONIGHT_CLASSES, selected);
+    };
+
+    // Load saved checked classes
+    const savedClasses = Storage.load(STORAGE_KEYS.TONIGHT_CLASSES, null);
+    if (Array.isArray(savedClasses)) {
+      classCheckboxes.forEach(cb => {
+        cb.checked = savedClasses.includes(cb.value);
+      });
+    }
+
+    classCheckboxes.forEach(cb => {
+      cb.addEventListener('change', saveCheckedClasses);
+    });
+
+    if (btnSelectAllClasses) {
+      btnSelectAllClasses.addEventListener('click', () => {
+        classCheckboxes.forEach(cb => { cb.checked = true; });
+        saveCheckedClasses();
+        showToast('All classes selected', 'info');
+      });
+    }
+
+    if (btnClearAllClasses) {
+      btnClearAllClasses.addEventListener('click', () => {
+        classCheckboxes.forEach(cb => { cb.checked = false; });
+        saveCheckedClasses();
+        showToast('All classes cleared', 'info');
+      });
+    }
+
+    bindCountdownSlider({
+      toggleId: 'toggleTonightClasses',
+      rowId: 'rowTonightClasses',
+      meterId: 'meterTonightClasses',
+      timerTagId: 'timerTonightClasses',
+      durationSeconds: 20,
+      onBeforeActivate: (onConfirm, onCancel) => {
+        const selected = getSelectedClasses();
+        if (selected.length === 0) {
+          showToast('Select at least one class to display', 'warning');
+          onCancel();
+          return;
+        }
+        onConfirm();
+      },
+      getPayload: () => {
+        const selected = getSelectedClasses();
+        return {
+          activeOverlay: 'tonight_classes',
+          overlayData: {
+            type: 'tonight_classes',
+            title: "Tonight's Classes",
+            items: selected.map((c, idx) => ({
+              order: idx + 1,
+              className: c
+            }))
+          }
+        };
+      }
     });
 
     // 5.3: Participants Panel
