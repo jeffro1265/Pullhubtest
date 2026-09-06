@@ -16,7 +16,8 @@ const STORAGE_KEYS = {
   CUSTOM_CLASS: 'pulling_custom_class',
   RESULTS_MODE: 'pulling_results_mode', // 'standings' or 'final'
   BYPASS_RAW: 'pulling_bypass_raw',
-  BYPASS_ACTIVE: 'pulling_bypass_active'
+  BYPASS_ACTIVE: 'pulling_bypass_active',
+  TONIGHT_CLASSES: 'pulling_tonight_classes'
 };
 
 export const Storage = {

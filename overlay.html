@@ -502,6 +502,16 @@
       line-height: 1.1;
     }
 
+    .run-order-subtitle {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-top: 5px;
+      line-height: 1.15;
+    }
+
     .run-order-body {
       padding: 10px 24px 20px 24px;
       display: flex;
@@ -582,6 +592,19 @@
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 480px;
+    }
+
+    .col-ro-vehicle.participated,
+    tr.participated .col-ro-vehicle {
+      text-decoration: line-through;
+      text-decoration-color: #ffffff;
+      text-decoration-thickness: 4px;
+      color: #ffffff;
+      opacity: 0.65;
+    }
+
+    tr.participated .col-ro-order {
+      opacity: 0.65;
     }
 
     /* ========================================================================
@@ -745,6 +768,7 @@
         <img src="logo.png" alt="Logo" class="run-order-logo" onerror="this.style.display='none'">
         <div class="run-order-header-text">
           <div class="run-order-title">Tonight's Classes</div>
+          <div class="run-order-subtitle" id="tonightClassesSubtitle">Presented by Unleaded 88</div>
         </div>
       </div>
       <div class="run-order-body" id="tonightClassesBody">
@@ -976,10 +1000,13 @@
                 ? rawVehicle
                 : `"${rawVehicle}"`;
 
+              const hasParticipated = Boolean(it.hasParticipated || (it.distance !== undefined && it.distance !== null && String(it.distance).trim() !== ''));
+              const doneClass = hasParticipated ? ' participated' : '';
+
               return `
-                <tr>
+                <tr class="${doneClass}">
                   <td class="col-ro-order">${it.order}</td>
-                  <td class="col-ro-vehicle">${escapeHtml(formattedVehicle)}</td>
+                  <td class="col-ro-vehicle${doneClass}">${escapeHtml(formattedVehicle)}</td>
                 </tr>
               `;
             };
@@ -1024,6 +1051,9 @@
         // 5) Tonight's Classes Overlay
         else if (activeOverlay === 'tonight_classes' || activeOverlay === 'classes') {
           const items = overlayData.items || [];
+          const subtitle = overlayData.subtitle || 'Presented by Unleaded 88';
+          const subEl = document.getElementById('tonightClassesSubtitle');
+          if (subEl) subEl.textContent = subtitle;
 
           if (items.length === 0) {
             tonightClassesOverlay.classList.remove('two-cols');

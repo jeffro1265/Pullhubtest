@@ -426,39 +426,83 @@
       }
     });
 
-    // 2.iv: Tonight's Classes Setup & Persistence
+    // 2.iv: Tonight's Classes Setup & Persistence (Ordered by Check Sequence)
     const classCheckboxes = document.querySelectorAll('.class-check');
     const btnSelectAllClasses = document.getElementById('btnSelectAllClasses');
     const btnClearAllClasses = document.getElementById('btnClearAllClasses');
 
+    let checkedClassesOrder = [];
+
     const getSelectedClasses = () => {
-      const selected = [];
-      classCheckboxes.forEach(cb => {
-        if (cb.checked) selected.push(cb.value);
+      return checkedClassesOrder.filter(val => {
+        const found = Array.from(classCheckboxes).find(cb => cb.value === val);
+        return found && found.checked;
       });
-      return selected;
+    };
+
+    const updateClassBadges = () => {
+      const selected = getSelectedClasses();
+      classCheckboxes.forEach(cb => {
+        const item = cb.closest('.class-checkbox-item');
+        if (!item) return;
+        const badge = item.querySelector('.class-order-badge');
+        if (!badge) return;
+        const idx = selected.indexOf(cb.value);
+        if (idx !== -1) {
+          badge.textContent = `#${idx + 1}`;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.textContent = '';
+          badge.style.display = 'none';
+        }
+      });
     };
 
     const saveCheckedClasses = () => {
       const selected = getSelectedClasses();
       Storage.save(STORAGE_KEYS.TONIGHT_CLASSES, selected);
+      updateClassBadges();
     };
 
     // Load saved checked classes
     const savedClasses = Storage.load(STORAGE_KEYS.TONIGHT_CLASSES, null);
     if (Array.isArray(savedClasses)) {
+      checkedClassesOrder = savedClasses.filter(c => {
+        return Array.from(classCheckboxes).some(cb => cb.value === c);
+      });
       classCheckboxes.forEach(cb => {
-        cb.checked = savedClasses.includes(cb.value);
+        cb.checked = checkedClassesOrder.includes(cb.value);
+      });
+    } else {
+      // Default: checkboxes that are initially checked in HTML
+      checkedClassesOrder = [];
+      classCheckboxes.forEach(cb => {
+        if (cb.checked) checkedClassesOrder.push(cb.value);
       });
     }
+    updateClassBadges();
 
     classCheckboxes.forEach(cb => {
-      cb.addEventListener('change', saveCheckedClasses);
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          if (!checkedClassesOrder.includes(cb.value)) {
+            checkedClassesOrder.push(cb.value);
+          }
+        } else {
+          checkedClassesOrder = checkedClassesOrder.filter(c => c !== cb.value);
+        }
+        saveCheckedClasses();
+      });
     });
 
     if (btnSelectAllClasses) {
       btnSelectAllClasses.addEventListener('click', () => {
-        classCheckboxes.forEach(cb => { cb.checked = true; });
+        classCheckboxes.forEach(cb => {
+          cb.checked = true;
+          if (!checkedClassesOrder.includes(cb.value)) {
+            checkedClassesOrder.push(cb.value);
+          }
+        });
         saveCheckedClasses();
         showToast('All classes selected', 'info');
       });
@@ -467,6 +511,7 @@
     if (btnClearAllClasses) {
       btnClearAllClasses.addEventListener('click', () => {
         classCheckboxes.forEach(cb => { cb.checked = false; });
+        checkedClassesOrder = [];
         saveCheckedClasses();
         showToast('All classes cleared', 'info');
       });
@@ -494,6 +539,7 @@
           overlayData: {
             type: 'tonight_classes',
             title: "Tonight's Classes",
+            subtitle: "Presented by Unleaded 88",
             items: selected.map((c, idx) => ({
               order: idx + 1,
               className: c
@@ -582,7 +628,9 @@
             className: getEffectiveClassName(),
             items: appState.participants.map((p, idx) => ({
               order: idx + 1,
-              vehicle: p.vehicle || 'Unknown Vehicle'
+              vehicle: p.vehicle || 'Unknown Vehicle',
+              distance: p.distance || '',
+              hasParticipated: Boolean(p.distance && String(p.distance).trim() !== '')
             }))
           }
         });
@@ -677,13 +725,13 @@
       });
     }
 
-    // Results 20s Overlay Slider (with Class & Mode Confirmation Prompt)
+    // Results 30s Overlay Slider (with Class & Mode Confirmation Prompt)
     bindCountdownSlider({
       toggleId: 'toggleResultsOverlay',
       rowId: 'rowResultsOverlay',
       meterId: 'meterResultsOverlay',
       timerTagId: 'timerResultsOverlay',
-      durationSeconds: 20,
+      durationSeconds: 30,
       onBeforeActivate: (onConfirm, onCancel) => {
         const modal = document.getElementById('resultsConfirmModal');
         const modalClass = document.getElementById('confirmModalClass');
