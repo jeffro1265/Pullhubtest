@@ -322,13 +322,13 @@
           <h3 style="font-size: 0.95rem; text-transform: uppercase; color: var(--text-secondary);">
             Participant Roster (<span id="participantCount">0</span>)
           </h3>
-          <button type="button" class="btn btn-primary btn-sm" id="btnToggleRunOrder" title="Display Run Order overlay on broadcast (20s)" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700;">
+          <button type="button" class="btn btn-primary btn-sm" id="btnToggleRunOrder" title="Display Run Order overlay on broadcast (10s)" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700;">
             <span id="btnRunOrderIcon">📋</span>
-            <span id="labelRunOrder">Show Run Order (20s)</span>
+            <span id="labelRunOrder">Show Run Order (10s)</span>
           </button>
         </div>
 
-        <!-- Run Order 20s Countdown Meter -->
+        <!-- Run Order 10s Countdown Meter -->
         <div id="rowRunOrderMeter" style="display: none; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
           <div class="countdown-progress-bar" id="meterRunOrder" style="height: 100%; width: 0%;"></div>
         </div>
@@ -348,7 +348,7 @@
             <span>🏆</span>
             <h2>Results &amp; Standings Panel</h2>
           </div>
-          <span class="panel-badge">30s Timer</span>
+          <span class="panel-badge">1 Min Timer</span>
         </div>
 
         <!-- 4.a & 4.b: Class Heading Dropdown & Standings/Final Toggle -->
@@ -388,7 +388,7 @@
           </div>
         </div>
 
-        <!-- 4.d: 30-Second On/Off Slider with Countdown Meter -->
+        <!-- 4.d: 60-Second On/Off Slider with Countdown Meter -->
         <div class="interactive-row" id="rowResultsOverlay">
           <div class="row-top">
             <div class="row-controls">
@@ -399,14 +399,14 @@
                 </div>
                 <span>OVERLAY</span>
               </label>
-              <span class="timer-tag" id="timerResultsOverlay">30s</span>
+              <span class="timer-tag" id="timerResultsOverlay">60s</span>
             </div>
             <div>
               <div style="font-weight: 800; font-size: 1.1rem; color: #fff;" id="resultsPreviewTitle">
                 Current Standings - AP1 Two Wheel Drive Trucks
               </div>
               <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                Shows sorted leaderboard overlay on screen for 30 seconds.
+                Shows sorted leaderboard overlay on screen for 1 minute.
               </div>
             </div>
           </div>

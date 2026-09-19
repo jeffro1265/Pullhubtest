@@ -234,8 +234,9 @@
     .participant-right-status {
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
+      gap: 6px;
       padding-left: 36px;
       border-left: 4px solid rgba(255, 255, 255, 0.28);
       flex-shrink: 0;
@@ -243,26 +244,30 @@
     }
 
     .participant-currently-badge {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: 0.08em;
+      font-size: 44px; /* Doubled text size for long-distance visibility */
+      font-weight: 500; /* Non-bold */
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: #fbbf24; /* High-vis pulling gold */
       background: rgba(0, 0, 0, 0.45);
-      padding: 5px 14px;
-      border-radius: 8px;
+      padding: 4px 18px;
+      border-radius: 10px;
       border: 2px solid rgba(251, 191, 36, 0.45);
-      margin-bottom: 5px;
+      line-height: 1.1;
+      text-align: center;
       white-space: nowrap;
     }
 
     .participant-distance-val {
-      font-size: 52px;
+      font-size: 62px; /* 20% larger than 52px */
       font-weight: 900;
+      -webkit-text-stroke: 1.2px #ffffff; /* 20% thicker/bolder stroke */
+      line-height: 1.05;
       font-family: "SF Pro Display", -apple-system, monospace;
       color: #ffffff;
-      letter-spacing: 0.02em;
-      text-shadow: 0 3px 8px rgba(0,0,0,0.85);
+      letter-spacing: 0.03em;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.9);
+      text-align: center;
       white-space: nowrap;
     }
 
@@ -708,10 +713,10 @@
         </div>
       </div>
 
-      <!-- Distance and "Currently" placed on the right side -->
+      <!-- Distance on top, Position on bottom -->
       <div class="participant-right-status" id="partRightStatus" style="display: none;">
-        <div class="participant-currently-badge" id="partCurrentlyBadge">CURRENTLY 1ST</div>
         <div class="participant-distance-val" id="partDistanceDisplay">000.00 FT</div>
+        <div class="participant-currently-badge" id="partCurrentlyBadge">1st Place</div>
       </div>
     </div>
 
@@ -936,7 +941,7 @@
             partDistanceDisplay.textContent = `${distNum} FT`;
 
             if (overlayData.position) {
-              partCurrentlyBadge.textContent = `CURRENTLY ${getOrdinal(overlayData.position)}`;
+              partCurrentlyBadge.textContent = `${getOrdinal(overlayData.position)} Place`;
               partCurrentlyBadge.style.display = 'inline-block';
             } else {
               partCurrentlyBadge.style.display = 'none';

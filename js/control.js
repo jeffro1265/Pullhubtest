@@ -615,7 +615,7 @@
         // Cancel any active overlay first
         cancelActiveTimer();
 
-        const durationSeconds = 20;
+        const durationSeconds = 10;
         const totalMs = durationSeconds * 1000;
         const startTime = Date.now();
 
@@ -668,13 +668,13 @@
           animFrame: requestAnimationFrame(updateMeter),
           onCancel: () => {
             btnToggleRunOrder.classList.remove('btn-danger');
-            if (labelRunOrder) labelRunOrder.textContent = 'Show Run Order (20s)';
+            if (labelRunOrder) labelRunOrder.textContent = 'Show Run Order (10s)';
             if (rowRunOrderMeter) rowRunOrderMeter.style.display = 'none';
             if (meterRunOrder) meterRunOrder.style.width = '0%';
           }
         };
 
-        showToast('Run Order overlay displayed (20s)', 'success');
+        showToast('Run Order overlay displayed (10s)', 'success');
       });
     }
 
@@ -725,13 +725,13 @@
       });
     }
 
-    // Results 30s Overlay Slider (with Class & Mode Confirmation Prompt)
+    // Results 60s Overlay Slider (with Class & Mode Confirmation Prompt)
     bindCountdownSlider({
       toggleId: 'toggleResultsOverlay',
       rowId: 'rowResultsOverlay',
       meterId: 'meterResultsOverlay',
       timerTagId: 'timerResultsOverlay',
-      durationSeconds: 30,
+      durationSeconds: 60,
       onBeforeActivate: (onConfirm, onCancel) => {
         const modal = document.getElementById('resultsConfirmModal');
         const modalClass = document.getElementById('confirmModalClass');
