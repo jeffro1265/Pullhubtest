@@ -281,9 +281,9 @@
        ======================================================================== */
     .results-overlay {
       top: 60px;
-      min-width: 960px;
-      max-width: 1300px;
-      width: clamp(960px, 65vw, 1300px);
+      min-width: 1050px;
+      max-width: 1450px;
+      width: clamp(1050px, 72vw, 1450px);
       padding: 0;
       overflow: hidden;
       display: flex;
@@ -294,7 +294,7 @@
 
     .results-card-header {
       position: relative;
-      padding: 20px 120px;
+      padding: 20px 100px;
       background: rgba(0, 0, 0, 0.38);
       border-bottom: 2px solid rgba(255, 255, 255, 0.25);
       display: flex;
@@ -324,7 +324,7 @@
     }
 
     .results-class-title {
-      font-size: 32px;
+      font-size: 40px;
       font-weight: 900;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -335,7 +335,7 @@
     }
 
     .results-mode-subtitle {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -348,7 +348,7 @@
 
     /* Table Container */
     .results-table-wrap {
-      padding: 10px 20px 18px 20px;
+      padding: 10px 24px 20px 24px;
       width: 100%;
     }
 
@@ -359,8 +359,8 @@
     }
 
     .results-table thead th {
-      padding: 10px 14px;
-      font-size: 15px;
+      padding: 12px 16px;
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -368,11 +368,11 @@
       border-bottom: 2px solid rgba(255, 255, 255, 0.25);
     }
 
-    .results-table thead th.th-pos { width: 70px; text-align: center; }
-    .results-table thead th.th-vehicle { width: 32%; }
-    .results-table thead th.th-driver { width: 26%; }
-    .results-table thead th.th-hometown { width: 24%; }
-    .results-table thead th.th-distance { width: 18%; text-align: right; }
+    .results-table thead th.th-pos { width: 95px; text-align: center; }
+    .results-table thead th.th-vehicle { width: 33%; }
+    .results-table thead th.th-driver { width: 25%; }
+    .results-table thead th.th-hometown { width: 22%; }
+    .results-table thead th.th-distance { width: 20%; text-align: right; }
 
     .results-table tbody tr {
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -384,10 +384,10 @@
     }
 
     .results-table tbody td {
-      padding: 5px 14px;
-      font-size: 26px;
+      padding: 8px 16px;
+      font-size: 32px;
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.25;
       vertical-align: middle;
       color: #ffffff;
     }
@@ -395,14 +395,14 @@
     .col-pos {
       text-align: center;
       font-weight: 900;
-      font-size: 28px;
+      font-size: 36px;
       color: #fbbf24; /* Pulling gold */
       font-family: monospace;
     }
 
     .col-vehicle {
       font-weight: 900;
-      font-size: 27px;
+      font-size: 34px;
       color: #ffffff;
       letter-spacing: 0.01em;
       white-space: nowrap;
@@ -412,7 +412,7 @@
 
     .col-driver {
       font-weight: 700;
-      font-size: 25px;
+      font-size: 32px;
       color: #ffffff;
       white-space: nowrap;
       overflow: hidden;
@@ -422,7 +422,7 @@
     .col-hometown {
       font-weight: 600;
       color: #bfdbfe;
-      font-size: 23px;
+      font-size: 28px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -432,9 +432,37 @@
       text-align: right;
       font-family: monospace;
       font-weight: 900;
-      font-size: 28px;
+      font-size: 36px;
       color: #ffffff;
       white-space: nowrap;
+    }
+
+    /* 9th Row: Centered Page Indicator */
+    .results-footer-row {
+      border-top: 2px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .results-footer-cell {
+      padding: 10px 16px 2px 16px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .results-page-indicator {
+      display: inline-block;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.55);
+      border: 2px solid rgba(251, 191, 36, 0.65);
+      color: #fbbf24; /* Pulling gold accent */
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      padding: 4px 24px;
+      border-radius: 10px;
+      white-space: nowrap;
+      font-family: monospace;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     /* ========================================================================
@@ -746,6 +774,13 @@
           <tbody id="resultsTableBody">
             <!-- Rows dynamically generated -->
           </tbody>
+          <tfoot>
+            <tr class="results-footer-row">
+              <td colspan="5" class="results-footer-cell">
+                <span class="results-page-indicator" id="resultsPageIndicator">Page 1/1</span>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -810,6 +845,14 @@
       const resultsClassDisplay = document.getElementById('resultsClassDisplay');
       const resultsModeDisplay = document.getElementById('resultsModeDisplay');
       const resultsTableBody = document.getElementById('resultsTableBody');
+      const resultsPageIndicator = document.getElementById('resultsPageIndicator');
+
+      const RESULTS_PAGE_SIZE = 8;
+      const RESULTS_PAGE_DURATION_MS = 20000; // 20s per page
+      let resultsPaginationTimer = null;
+      let resultsCurrentPage = 1;
+      let resultsTotalPages = 1;
+      let resultsAllItems = [];
 
       const runOrderOverlay = document.getElementById('runOrderOverlay');
       const runOrderBody = document.getElementById('runOrderBody');
@@ -966,25 +1009,22 @@
           if (resultsClassDisplay) resultsClassDisplay.textContent = className;
           if (resultsModeDisplay) resultsModeDisplay.textContent = modeName;
 
-          const items = overlayData.items || [];
-          if (items.length === 0) {
-            resultsTableBody.innerHTML = `
-              <tr>
-                <td colspan="5" style="text-align: center; color: #bfdbfe; padding: 24px;">
-                  No distance scores recorded yet
-                </td>
-              </tr>
-            `;
-          } else {
-            resultsTableBody.innerHTML = items.map(it => `
-              <tr>
-                <td class="col-pos">${it.position}</td>
-                <td class="col-vehicle">${escapeHtml(it.vehicle)}</td>
-                <td class="col-driver">${escapeHtml(it.driver)}</td>
-                <td class="col-hometown">${escapeHtml(it.hometown || '-')}</td>
-                <td class="col-distance">${escapeHtml(it.distance)}'</td>
-              </tr>
-            `).join('');
+          resultsAllItems = overlayData.items || [];
+          resultsTotalPages = Math.min(3, Math.max(1, Math.ceil(resultsAllItems.length / RESULTS_PAGE_SIZE)));
+          resultsCurrentPage = 1;
+
+          renderResultsCurrentPage();
+
+          if (resultsPaginationTimer) {
+            clearInterval(resultsPaginationTimer);
+            resultsPaginationTimer = null;
+          }
+
+          if (resultsTotalPages > 1) {
+            resultsPaginationTimer = setInterval(() => {
+              resultsCurrentPage = (resultsCurrentPage % resultsTotalPages) + 1;
+              renderResultsCurrentPage();
+            }, RESULTS_PAGE_DURATION_MS);
           }
 
           resultsOverlay.classList.add('is-visible');
@@ -1118,7 +1158,41 @@
         }
       }
 
+      function renderResultsCurrentPage() {
+        if (resultsPageIndicator) {
+          resultsPageIndicator.textContent = `Page ${resultsCurrentPage}/${resultsTotalPages}`;
+        }
+
+        if (!resultsAllItems || resultsAllItems.length === 0) {
+          resultsTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; color: #bfdbfe; padding: 32px; font-size: 28px; font-weight: 600;">
+                No distance scores recorded yet
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        const startIndex = (resultsCurrentPage - 1) * RESULTS_PAGE_SIZE;
+        const pageItems = resultsAllItems.slice(startIndex, startIndex + RESULTS_PAGE_SIZE);
+
+        resultsTableBody.innerHTML = pageItems.map(it => `
+          <tr>
+            <td class="col-pos">${it.position}</td>
+            <td class="col-vehicle">${escapeHtml(it.vehicle)}</td>
+            <td class="col-driver">${escapeHtml(it.driver)}</td>
+            <td class="col-hometown">${escapeHtml(it.hometown || '-')}</td>
+            <td class="col-distance">${escapeHtml(it.distance)}'</td>
+          </tr>
+        `).join('');
+      }
+
       function hideAll() {
+        if (resultsPaginationTimer) {
+          clearInterval(resultsPaginationTimer);
+          resultsPaginationTimer = null;
+        }
         if (eventOverlay) eventOverlay.classList.remove('is-visible');
         if (participantOverlay) participantOverlay.classList.remove('is-visible');
         if (resultsOverlay) resultsOverlay.classList.remove('is-visible');

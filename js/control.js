@@ -731,7 +731,9 @@
       rowId: 'rowResultsOverlay',
       meterId: 'meterResultsOverlay',
       timerTagId: 'timerResultsOverlay',
-      durationSeconds: 60,
+      durationSeconds: () => {
+        return getResultsDurationSeconds();
+      },
       onBeforeActivate: (onConfirm, onCancel) => {
         const modal = document.getElementById('resultsConfirmModal');
         const modalClass = document.getElementById('confirmModalClass');
@@ -1253,7 +1255,23 @@
     return items;
   }
 
+  function getResultsDurationSeconds() {
+    const items = appState.bypassActive ? appState.bypassItems : getCompiledStandings();
+    const pages = Math.min(3, Math.max(1, Math.ceil(items.length / 8)));
+    return pages * 20;
+  }
+
+  function updateResultsTimerUI() {
+    const timerTag = document.getElementById('timerResultsOverlay');
+    const toggle = document.getElementById('toggleResultsOverlay');
+    if (timerTag && (!toggle || !toggle.checked)) {
+      const dur = getResultsDurationSeconds();
+      timerTag.textContent = `${dur}s`;
+    }
+  }
+
   function updateStandingsPreview() {
+    updateResultsTimerUI();
     const tbody = document.getElementById('resultsTableBody');
     if (!tbody) return;
 
@@ -1321,16 +1339,18 @@
     function startTimer() {
       cancelActiveTimer();
 
+      const effectiveDuration = typeof durationSeconds === 'function' ? durationSeconds() : durationSeconds;
+
       toggle.checked = true;
       if (row) row.classList.add('is-active');
       if (meter) meter.style.width = '100%';
-      if (timerTag) timerTag.textContent = `${durationSeconds}s`;
+      if (timerTag) timerTag.textContent = `${effectiveDuration}s`;
 
       const payload = getPayload();
       mqttService.publishState(payload);
 
       const startTime = Date.now();
-      const totalMs = durationSeconds * 1000;
+      const totalMs = effectiveDuration * 1000;
 
       const updateMeter = () => {
         const elapsed = Date.now() - startTime;
@@ -1359,7 +1379,7 @@
         meter,
         timerTag,
         animFrame: requestAnimationFrame(updateMeter),
-        durationSeconds
+        durationSeconds: effectiveDuration
       };
     }
 
