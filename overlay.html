@@ -716,7 +716,7 @@
       <!-- Distance on top, Position on bottom -->
       <div class="participant-right-status" id="partRightStatus" style="display: none;">
         <div class="participant-distance-val" id="partDistanceDisplay">000.00 FT</div>
-        <div class="participant-currently-badge" id="partCurrentlyBadge">1st Place</div>
+        <div class="participant-currently-badge" id="partCurrentlyBadge">NEW LEADER</div>
       </div>
     </div>
 
@@ -941,7 +941,12 @@
             partDistanceDisplay.textContent = `${distNum} FT`;
 
             if (overlayData.position) {
-              partCurrentlyBadge.textContent = `${getOrdinal(overlayData.position)} Place`;
+              const pos = parseInt(overlayData.position, 10);
+              if (pos === 1) {
+                partCurrentlyBadge.textContent = 'NEW LEADER';
+              } else {
+                partCurrentlyBadge.textContent = `${getOrdinal(overlayData.position)} Place`;
+              }
               partCurrentlyBadge.style.display = 'inline-block';
             } else {
               partCurrentlyBadge.style.display = 'none';
