@@ -281,9 +281,9 @@
        ======================================================================== */
     .results-overlay {
       top: 60px;
-      min-width: 1050px;
-      max-width: 1450px;
-      width: clamp(1050px, 72vw, 1450px);
+      width: max-content;
+      min-width: clamp(1050px, 72vw, 1450px);
+      max-width: 1860px;
       padding: 0;
       overflow: hidden;
       display: flex;
@@ -350,6 +350,7 @@
     .results-table-wrap {
       padding: 10px 24px 20px 24px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .results-table {
@@ -366,13 +367,14 @@
       text-transform: uppercase;
       color: #93c5fd;
       border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+      white-space: nowrap;
     }
 
-    .results-table thead th.th-pos { width: 95px; text-align: center; }
-    .results-table thead th.th-vehicle { width: 33%; }
-    .results-table thead th.th-driver { width: 25%; }
-    .results-table thead th.th-hometown { width: 22%; }
-    .results-table thead th.th-distance { width: 20%; text-align: right; }
+    .results-table thead th.th-pos { width: 95px; min-width: 95px; text-align: center; }
+    .results-table thead th.th-vehicle { min-width: 280px; }
+    .results-table thead th.th-driver { min-width: 220px; }
+    .results-table thead th.th-hometown { min-width: 200px; }
+    .results-table thead th.th-distance { width: 170px; min-width: 170px; text-align: right; }
 
     .results-table tbody tr {
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -398,6 +400,7 @@
       font-size: 36px;
       color: #fbbf24; /* Pulling gold */
       font-family: monospace;
+      white-space: nowrap;
     }
 
     .col-vehicle {
@@ -406,6 +409,7 @@
       color: #ffffff;
       letter-spacing: 0.01em;
       white-space: nowrap;
+      max-width: 580px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -415,6 +419,7 @@
       font-size: 32px;
       color: #ffffff;
       white-space: nowrap;
+      max-width: 440px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -424,6 +429,7 @@
       color: #bfdbfe;
       font-size: 28px;
       white-space: nowrap;
+      max-width: 380px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
