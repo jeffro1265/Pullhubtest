@@ -507,6 +507,47 @@
       max-width: 1380px;
     }
 
+    /* Run Order 2-column container override: transparent wrapper */
+    #runOrderOverlay.two-cols {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      width: max-content !important;
+      max-width: 1380px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      gap: 20px !important;
+    }
+
+    /* Column cards in 2-column dynamic run order */
+    .run-order-column-card {
+      background: linear-gradient(180deg, #0d38c7 0%, #082696 55%, #051860 100%);
+      color: #ffffff;
+      border: 4px solid rgba(255, 255, 255, 0.32);
+      border-radius: 24px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      width: 630px;
+      height: max-content;
+      box-sizing: border-box;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .run-order-column-card .run-order-card-header {
+      min-height: 120px;
+      box-sizing: border-box;
+    }
+
+    .run-order-column-card .run-order-col {
+      width: 100%;
+      min-width: 0;
+      max-width: none;
+    }
+
     .run-order-card-header {
       background: rgba(4, 18, 70, 0.85);
       border-bottom: 3px solid rgba(255, 255, 255, 0.25);
@@ -1040,65 +1081,93 @@
         else if (activeOverlay === 'run_order' || activeOverlay === 'roster') {
           const items = overlayData.items || [];
 
+          const buildHeaderHtml = () => `
+            <div class="run-order-card-header">
+              <img src="logo.png" alt="Logo" class="run-order-logo" onerror="this.style.display='none'">
+              <div class="run-order-header-text">
+                <div class="run-order-title">RUN ORDER</div>
+              </div>
+            </div>
+          `;
+
+          const formatRow = (it) => {
+            const rawVehicle = (it.vehicle || 'Unknown Vehicle').trim();
+            const formattedVehicle = (rawVehicle.startsWith('"') && rawVehicle.endsWith('"')) || (rawVehicle.startsWith('“') && rawVehicle.endsWith('”'))
+              ? rawVehicle
+              : `"${rawVehicle}"`;
+
+            const hasParticipated = Boolean(it.hasParticipated || (it.distance !== undefined && it.distance !== null && String(it.distance).trim() !== ''));
+            const doneClass = hasParticipated ? ' participated' : '';
+
+            return `
+              <tr class="${doneClass}">
+                <td class="col-ro-order">${it.order}</td>
+                <td class="col-ro-vehicle${doneClass}">${escapeHtml(formattedVehicle)}</td>
+              </tr>
+            `;
+          };
+
+          const buildTableCol = (slice) => `
+            <div class="run-order-col">
+              <table class="run-order-table">
+                <thead>
+                  <tr>
+                    <th class="th-ro-order">#</th>
+                    <th class="th-ro-vehicle">Vehicle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${slice.map(formatRow).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+
           if (items.length === 0) {
             runOrderOverlay.classList.remove('two-cols');
-            runOrderBody.innerHTML = `
-              <div class="run-order-col">
-                <div style="text-align: center; color: #bfdbfe; padding: 36px; font-weight: 600; font-size: 24px;">
-                  No participants loaded
+            runOrderOverlay.innerHTML = `
+              ${buildHeaderHtml()}
+              <div class="run-order-body">
+                <div class="run-order-col">
+                  <div style="text-align: center; color: #bfdbfe; padding: 36px; font-weight: 600; font-size: 24px;">
+                    No participants loaded
+                  </div>
                 </div>
               </div>
             `;
-          } else {
-            const formatRow = (it) => {
-              const rawVehicle = (it.vehicle || 'Unknown Vehicle').trim();
-              const formattedVehicle = (rawVehicle.startsWith('"') && rawVehicle.endsWith('"')) || (rawVehicle.startsWith('“') && rawVehicle.endsWith('”'))
-                ? rawVehicle
-                : `"${rawVehicle}"`;
-
-              const hasParticipated = Boolean(it.hasParticipated || (it.distance !== undefined && it.distance !== null && String(it.distance).trim() !== ''));
-              const doneClass = hasParticipated ? ' participated' : '';
-
-              return `
-                <tr class="${doneClass}">
-                  <td class="col-ro-order">${it.order}</td>
-                  <td class="col-ro-vehicle${doneClass}">${escapeHtml(formattedVehicle)}</td>
-                </tr>
-              `;
-            };
-
-            const buildTableCol = (slice) => `
-              <div class="run-order-col">
-                <table class="run-order-table">
-                  <thead>
-                    <tr>
-                      <th class="th-ro-order">#</th>
-                      <th class="th-ro-vehicle">Vehicle</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${slice.map(formatRow).join('')}
-                  </tbody>
-                </table>
+          } else if (items.length <= 10) {
+            runOrderOverlay.classList.remove('two-cols');
+            runOrderOverlay.innerHTML = `
+              ${buildHeaderHtml()}
+              <div class="run-order-body">
+                ${buildTableCol(items)}
               </div>
             `;
-
-            if (items.length <= 10) {
-              runOrderOverlay.classList.remove('two-cols');
-              runOrderBody.innerHTML = buildTableCol(items);
+          } else {
+            runOrderOverlay.classList.add('two-cols');
+            let col1Items, col2Items;
+            if (items.length <= 20) {
+              col1Items = items.slice(0, 10);
+              col2Items = items.slice(10);
             } else {
-              runOrderOverlay.classList.add('two-cols');
-              let col1Items, col2Items;
-              if (items.length <= 20) {
-                col1Items = items.slice(0, 10);
-                col2Items = items.slice(10);
-              } else {
-                const mid = Math.ceil(items.length / 2);
-                col1Items = items.slice(0, mid);
-                col2Items = items.slice(mid);
-              }
-              runOrderBody.innerHTML = buildTableCol(col1Items) + buildTableCol(col2Items);
+              const mid = Math.ceil(items.length / 2);
+              col1Items = items.slice(0, mid);
+              col2Items = items.slice(mid);
             }
+            runOrderOverlay.innerHTML = `
+              <div class="run-order-column-card">
+                ${buildHeaderHtml()}
+                <div class="run-order-body">
+                  ${buildTableCol(col1Items)}
+                </div>
+              </div>
+              <div class="run-order-column-card">
+                ${buildHeaderHtml()}
+                <div class="run-order-body">
+                  ${buildTableCol(col2Items)}
+                </div>
+              </div>
+            `;
           }
 
           runOrderOverlay.classList.add('is-visible');
