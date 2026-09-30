@@ -1027,10 +1027,11 @@
           // Distance and "Currently" on the right side (only shown if a distance value is entered)
           if (overlayData.distance && String(overlayData.distance).trim()) {
             partRightStatus.style.display = 'flex';
-            const distNum = String(overlayData.distance).trim();
-            partDistanceDisplay.textContent = `${distNum} FT`;
+            const distStr = String(overlayData.distance).trim();
+            const startsWithNum = /^[0-9]/.test(distStr);
+            partDistanceDisplay.textContent = startsWithNum ? `${distStr} FT` : distStr;
 
-            if (overlayData.position) {
+            if (overlayData.position && startsWithNum) {
               const pos = parseInt(overlayData.position, 10);
               if (pos === 1) {
                 partCurrentlyBadge.textContent = 'NEW LEADER';
@@ -1252,15 +1253,21 @@
         const startIndex = (resultsCurrentPage - 1) * RESULTS_PAGE_SIZE;
         const pageItems = resultsAllItems.slice(startIndex, startIndex + RESULTS_PAGE_SIZE);
 
-        resultsTableBody.innerHTML = pageItems.map(it => `
-          <tr>
-            <td class="col-pos">${it.position}</td>
-            <td class="col-vehicle">${escapeHtml(it.vehicle)}</td>
-            <td class="col-driver">${escapeHtml(it.driver)}</td>
-            <td class="col-hometown">${escapeHtml(it.hometown || '-')}</td>
-            <td class="col-distance">${escapeHtml(it.distance)}'</td>
-          </tr>
-        `).join('');
+        resultsTableBody.innerHTML = pageItems.map(it => {
+          const distStr = String(it.distance || '').trim();
+          const startsWithNum = /^[0-9]/.test(distStr);
+          const distDisplay = startsWithNum ? `${escapeHtml(distStr)}'` : escapeHtml(distStr);
+
+          return `
+            <tr>
+              <td class="col-pos">${it.position}</td>
+              <td class="col-vehicle">${escapeHtml(it.vehicle)}</td>
+              <td class="col-driver">${escapeHtml(it.driver)}</td>
+              <td class="col-hometown">${escapeHtml(it.hometown || '-')}</td>
+              <td class="col-distance">${distDisplay}</td>
+            </tr>
+          `;
+        }).join('');
       }
 
       function hideAll() {

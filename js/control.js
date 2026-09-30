@@ -1023,10 +1023,34 @@
     showToast(`Added ${newP.vehicle}`, 'success');
   }
 
+  function startsWithNumber(val) {
+    if (val === null || val === undefined) return false;
+    const s = String(val).trim();
+    return /^[0-9]/.test(s);
+  }
+
+  function getSortedScoredParticipants() {
+    const entered = appState.participants.filter(p => 
+      p.distance !== undefined && p.distance !== null && String(p.distance).trim() !== ''
+    );
+
+    const numeric = entered
+      .filter(p => startsWithNumber(p.distance))
+      .sort((a, b) => {
+        const valA = parseFloat(a.distance);
+        const valB = parseFloat(b.distance);
+        const numA = isNaN(valA) ? 0 : valA;
+        const numB = isNaN(valB) ? 0 : valB;
+        return numB - numA;
+      });
+
+    const nonNumeric = entered.filter(p => !startsWithNumber(p.distance));
+
+    return [...numeric, ...nonNumeric];
+  }
+
   function calculatePositions() {
-    const scored = appState.participants
-      .filter(p => p.distance && !isNaN(parseFloat(p.distance)) && parseFloat(p.distance) > 0)
-      .sort((a, b) => parseFloat(b.distance) - parseFloat(a.distance));
+    const scored = getSortedScoredParticipants();
 
     appState.participants.forEach(p => p.position = null);
 
@@ -1086,10 +1110,8 @@
 
         <div class="participant-actions">
           <div class="distance-input-wrapper">
-            <label style="font-size: 0.7rem; margin-bottom: 2px;">Distance (ft)</label>
+            <label style="font-size: 0.7rem; margin-bottom: 2px;">Distance</label>
             <input type="text" 
-                   inputmode="decimal" 
-                   pattern="[0-9]*\\.?[0-9]*" 
                    class="participant-distance-input" 
                    data-id="${p.id}" 
                    placeholder="000.00" 
@@ -1161,7 +1183,8 @@
 
       const posDisplay = p.position ? `${p.position}` : (idx + 1);
       badge.textContent = posDisplay;
-      badge.className = `participant-badge-pos ${p.position === 1 ? 'p1' : (p.position === 2 ? 'p2' : (p.position === 3 ? 'p3' : ''))}`;
+      const isNum = startsWithNumber(p.distance);
+      badge.className = `participant-badge-pos ${isNum && p.position === 1 ? 'p1' : (isNum && p.position === 2 ? 'p2' : (isNum && p.position === 3 ? 'p3' : ''))}`;
     });
   }
 
@@ -1206,16 +1229,13 @@
   }
 
   function getCompiledStandings() {
-    return appState.participants
-      .filter(p => p.distance && !isNaN(parseFloat(p.distance)) && parseFloat(p.distance) > 0)
-      .sort((a, b) => parseFloat(b.distance) - parseFloat(a.distance))
-      .map((p, idx) => ({
-        position: idx + 1,
-        distance: p.distance,
-        vehicle: p.vehicle,
-        driver: p.driver,
-        hometown: p.hometown
-      }));
+    return getSortedScoredParticipants().map((p, idx) => ({
+      position: idx + 1,
+      distance: String(p.distance).trim(),
+      vehicle: p.vehicle,
+      driver: p.driver,
+      hometown: p.hometown
+    }));
   }
 
   function parseBypassTSV(tsvText) {
@@ -1288,15 +1308,21 @@
       return;
     }
 
-    tbody.innerHTML = items.map(it => `
-      <tr>
-        <td class="rank-cell">${it.position}</td>
-        <td style="font-weight: 700;">${escapeHtml(it.vehicle)}</td>
-        <td>${escapeHtml(it.driver)}</td>
-        <td style="color: var(--text-secondary);">${escapeHtml(it.hometown || '-')}</td>
-        <td class="distance-cell" style="text-align: right;">${escapeHtml(it.distance)}'</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = items.map(it => {
+      const distStr = String(it.distance || '').trim();
+      const isNum = startsWithNumber(distStr);
+      const distDisplay = isNum ? `${escapeHtml(distStr)}'` : escapeHtml(distStr);
+
+      return `
+        <tr>
+          <td class="rank-cell">${it.position}</td>
+          <td style="font-weight: 700;">${escapeHtml(it.vehicle)}</td>
+          <td>${escapeHtml(it.driver)}</td>
+          <td style="color: var(--text-secondary);">${escapeHtml(it.hometown || '-')}</td>
+          <td class="distance-cell" style="text-align: right;">${distDisplay}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   function updateOverrideBanner(isActive) {
